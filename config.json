@@ -1,6 +1,9 @@
 {
   "enabled": true,
+  "tts_engine": "auto",
+
   "voice": "en-US-AriaNeural",
+  "kokoro_voice": "af_bella",
   "rate": "+10%",
   "volume": "+0%",
 
