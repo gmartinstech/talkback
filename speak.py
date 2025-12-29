@@ -80,6 +80,14 @@ def clean_text_for_speech(text):
     if not text:
         return ""
 
+    # Remove ANSI escape codes (colors, bold, etc from terminal)
+    text = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', text)
+    text = re.sub(r'\x1b\].*?\x07', '', text)  # OSC sequences
+    text = re.sub(r'\x1b[PX^_].*?\x1b\\', '', text)  # Other escape sequences
+
+    # Remove other control characters except newlines and tabs
+    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+
     # Remove code blocks
     text = re.sub(r'```[\s\S]*?```', ' code block omitted ', text)
     text = re.sub(r'`[^`]+`', '', text)
@@ -90,12 +98,18 @@ def clean_text_for_speech(text):
     # Remove markdown formatting
     text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # bold
     text = re.sub(r'\*([^*]+)\*', r'\1', text)      # italic
+    text = re.sub(r'_{1,2}([^_]+)_{1,2}', r'\1', text)  # underscore bold/italic
+    text = re.sub(r'~~([^~]+)~~', r'\1', text)      # strikethrough
     text = re.sub(r'#{1,6}\s*', '', text)           # headers
     text = re.sub(r'[-*]\s+', '', text)             # list items
+    text = re.sub(r'>\s+', '', text)                # blockquotes
 
     # Remove file paths (they don't speak well)
     text = re.sub(r'[A-Za-z]:[/\\][^\s]+', 'file path', text)
     text = re.sub(r'/[^\s]+/[^\s]+', 'file path', text)
+
+    # Remove URLs
+    text = re.sub(r'https?://[^\s]+', 'link', text)
 
     # Clean up whitespace
     text = re.sub(r'\n+', '. ', text)
