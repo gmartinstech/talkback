@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "voice": "en-US-AriaNeural",
+  "rate": "+10%",
+  "volume": "+0%",
+
+  "speak_responses": true,
+  "speak_thinking": false,
+  "speak_tool_results": false,
+
+  "tool_filters": [],
+  "tools_to_announce": ["Bash", "Write", "Edit"],
+
+  "max_speak_length": 500,
+  "summarize_long_responses": true,
+
+  "fallback_to_sapi": true,
+  "log_file": "~/.claude/talkback.log"
+}
