@@ -2,7 +2,7 @@
   "enabled": true,
   "tts_engine": "auto",
 
-  "voice": "en-US-AriaNeural",
+  "voice": "en-US-AndrewMultilingualNeural",
   "kokoro_voice": "af_bella",
   "rate": "+10%",
   "volume": "+0%",
@@ -14,8 +14,7 @@
   "tool_filters": [],
   "tools_to_announce": ["Bash", "Write", "Edit"],
 
-  "max_speak_length": 500,
-  "summarize_long_responses": true,
+  "batch_size": 1000,
 
   "fallback_to_sapi": true,
   "log_file": "~/.claude/talkback.log"

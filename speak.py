@@ -153,6 +153,22 @@ def truncate_text(text, max_length=500):
     return truncated + "..."
 
 
+def split_into_sentences(text):
+    """Split text into sentences for faster TTS processing"""
+    if not text:
+        return []
+
+    # Split on sentence endings
+    import re
+    # Split on . ! ? followed by space or end of string
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+
+    # Filter empty sentences and strip whitespace
+    sentences = [s.strip() for s in sentences if s.strip()]
+
+    return sentences
+
+
 def wsl_to_windows_path(linux_path):
     """Convert WSL path to Windows path"""
     try:
@@ -198,20 +214,27 @@ def play_audio_file(file_path):
     # Escape backslashes for PowerShell
     win_path = win_path.replace('\\', '\\\\')
 
+    # Use a more reliable playback method that waits for audio to complete
     ps_command = f'''
     Add-Type -AssemblyName presentationCore
     $player = New-Object System.Windows.Media.MediaPlayer
     $player.Open("{win_path}")
-    Start-Sleep -Milliseconds 500
-    $player.Play()
-    $timeout = 0
-    while ($player.Position -lt $player.NaturalDuration.TimeSpan -and $timeout -lt 600) {{
+
+    # Wait for media to be loaded
+    while (-not $player.NaturalDuration.HasTimeSpan) {{
         Start-Sleep -Milliseconds 100
-        $timeout++
     }}
+
+    $player.Play()
+
+    # Wait until playback completes (no arbitrary timeout)
+    while ($player.Position -lt $player.NaturalDuration.TimeSpan) {{
+        Start-Sleep -Milliseconds 200
+    }}
+
     $player.Close()
     '''
-    return run_powershell(ps_command, timeout=120)
+    return run_powershell(ps_command, timeout=600)
 
 
 def speak_kokoro(text, voice="af_bella"):
@@ -352,35 +375,8 @@ def is_kokoro_available():
         return False
 
 
-def speak(text, config=None):
-    """Main speak function - cross-platform"""
-    if config is None:
-        config = load_config()
-
-    if not config.get("enabled", True):
-        return
-
-    # Clean and prepare text
-    text = clean_text_for_speech(text)
-    if not text:
-        return
-
-    max_length = config.get("max_speak_length", 500)
-    text = truncate_text(text, max_length)
-
-    # Determine TTS engine
-    engine = config.get("tts_engine", "auto")
-
-    # Auto-select engine based on environment
-    if engine == "auto":
-        if IS_WSL and is_kokoro_available():
-            engine = "kokoro"
-        elif IS_WINDOWS or IS_WSL:
-            engine = "edge"
-        else:
-            engine = "espeak"
-
-    # Try selected engine
+def speak_single_batch(text, config, engine):
+    """Speak a single batch of text using the specified engine"""
     success = False
 
     if engine == "kokoro":
@@ -403,7 +399,153 @@ def speak(text, config=None):
 
     # Last resort: espeak on Linux
     if not success and not IS_WINDOWS:
-        speak_espeak(text)
+        success = speak_espeak(text)
+
+    return success
+
+
+async def generate_full_audio_streaming(text, voice, rate, volume, output_path):
+    """Generate audio file using Edge TTS streaming - handles unlimited text length"""
+    try:
+        import edge_tts
+
+        communicate = edge_tts.Communicate(text, voice, rate=rate, volume=volume)
+
+        # Use streaming to write audio data as it's received
+        with open(output_path, "wb") as audio_file:
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    audio_file.write(chunk["data"])
+
+        return True
+    except Exception as e:
+        log_error(f"Edge TTS streaming failed: {e}")
+        return False
+
+
+async def stream_to_mpv(text, voice, rate, volume):
+    """Stream audio directly to mpv player for instant playback"""
+    try:
+        import edge_tts
+
+        communicate = edge_tts.Communicate(text, voice, rate=rate, volume=volume)
+
+        # Start mpv process reading from stdin
+        mpv_process = subprocess.Popen(
+            ['mpv', '--no-cache', '--no-terminal', '--no-video', '--', 'fd://0'],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+        # Stream audio chunks directly to mpv
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                try:
+                    mpv_process.stdin.write(chunk["data"])
+                    mpv_process.stdin.flush()
+                except BrokenPipeError:
+                    break
+
+        # Close stdin and wait for mpv to finish
+        mpv_process.stdin.close()
+        mpv_process.wait()
+
+        return True
+    except FileNotFoundError:
+        log_error("mpv not found - falling back to file-based playback")
+        return False
+    except Exception as e:
+        log_error(f"mpv streaming failed: {e}")
+        return False
+
+
+def is_mpv_available():
+    """Check if mpv player is installed"""
+    try:
+        result = subprocess.run(
+            ['mpv', '--version'],
+            capture_output=True,
+            timeout=5
+        )
+        return result.returncode == 0
+    except:
+        return False
+
+
+def speak(text, config=None):
+    """Main speak function - cross-platform with streaming TTS for smooth playback"""
+    if config is None:
+        config = load_config()
+
+    if not config.get("enabled", True):
+        return
+
+    # Clean and prepare text
+    text = clean_text_for_speech(text)
+    if not text:
+        return
+
+    # Determine TTS engine
+    engine = config.get("tts_engine", "auto")
+
+    # Auto-select engine based on environment
+    if engine == "auto":
+        if IS_WSL and is_kokoro_available():
+            engine = "kokoro"
+        elif IS_WINDOWS or IS_WSL:
+            engine = "edge"
+        else:
+            engine = "espeak"
+
+    # For Edge TTS, try streaming to mpv first (instant playback), fallback to file-based
+    if engine == "edge":
+        voice = config.get("voice", "en-US-AriaNeural")
+        rate = config.get("rate", "+10%")
+        volume = config.get("volume", "+0%")
+
+        success = False
+
+        # Try mpv streaming first (instant playback - audio starts immediately)
+        if config.get("use_mpv_streaming", True) and is_mpv_available():
+            try:
+                success = asyncio.run(stream_to_mpv(text, voice, rate, volume))
+                if success:
+                    return
+            except Exception as e:
+                log_error(f"mpv streaming failed: {e}")
+
+        # Fallback to file-based playback (wait for full generation, then play)
+        if IS_WSL:
+            temp_dir = "/mnt/c/temp"
+            os.makedirs(temp_dir, exist_ok=True)
+            audio_path = os.path.join(temp_dir, f"talkback_{os.getpid()}.mp3")
+        else:
+            audio_path = os.path.join(tempfile.gettempdir(), f"talkback_{os.getpid()}.mp3")
+
+        try:
+            # Generate complete audio using streaming (handles any text length)
+            success = asyncio.run(generate_full_audio_streaming(text, voice, rate, volume, audio_path))
+
+            if success and os.path.exists(audio_path):
+                # Play the complete audio file - smooth continuous playback
+                play_audio_file(audio_path)
+                # Clean up
+                try:
+                    os.unlink(audio_path)
+                except:
+                    pass
+            else:
+                # Fallback to SAPI
+                if config.get("fallback_to_sapi", True):
+                    speak_sapi(text, rate=2)
+        except Exception as e:
+            log_error(f"Edge TTS failed: {e}")
+            if config.get("fallback_to_sapi", True):
+                speak_sapi(text, rate=2)
+    else:
+        # For other engines, speak the whole text
+        speak_single_batch(text, config, engine)
 
 
 def speak_announcement(message, config=None):
@@ -448,7 +590,35 @@ if __name__ == "__main__":
         if sys.argv[1] == "--voices":
             list_kokoro_voices()
             sys.exit(0)
-        text = " ".join(sys.argv[1:])
+        elif sys.argv[1] in ("--file", "-f"):
+            # Read text from file
+            if len(sys.argv) < 3:
+                print("Error: --file requires a file path argument")
+                sys.exit(1)
+            file_path = sys.argv[2]
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    text = f.read()
+                print(f"Reading from file: {file_path}")
+            except FileNotFoundError:
+                print(f"Error: File not found: {file_path}")
+                sys.exit(1)
+            except Exception as e:
+                print(f"Error reading file: {e}")
+                sys.exit(1)
+        elif sys.argv[1] == "--help":
+            print("Usage: speak.py [OPTIONS] [TEXT]")
+            print("\nOptions:")
+            print("  --file, -f FILE   Read text from a file")
+            print("  --voices          List available Kokoro voices")
+            print("  --help            Show this help message")
+            print("\nExamples:")
+            print("  speak.py Hello world")
+            print("  speak.py --file document.txt")
+            print("  speak.py -f notes.md")
+            sys.exit(0)
+        else:
+            text = " ".join(sys.argv[1:])
     else:
         text = "Hello! TalkBack TTS engine is working correctly."
 

@@ -113,43 +113,39 @@ def main():
     config = load_config()
 
     if not config.get("enabled", True):
+        log_error("Hook disabled in config")
         sys.exit(0)
 
     if not config.get("speak_responses", True):
+        log_error("speak_responses disabled")
         sys.exit(0)
 
     # Read hook input
     hook_input = read_hook_input()
     if not hook_input:
+        log_error("No hook input received")
         sys.exit(0)
 
     # Get transcript path
     transcript_path = hook_input.get("transcript_path", "")
+    log_error(f"Transcript path: {transcript_path}")
 
     # Check if stop hook is already active (avoid recursion)
     if hook_input.get("stop_hook_active", False):
+        log_error("Stop hook already active, skipping")
         sys.exit(0)
 
     # Parse transcript for last response
     response_text = parse_transcript(transcript_path)
 
     if not response_text:
-        # No response to speak
+        log_error("No response text found in transcript")
         sys.exit(0)
 
-    # Determine if we should summarize
-    max_length = config.get("max_speak_length", 500)
-    if len(response_text) > max_length and config.get("summarize_long_responses", True):
-        # Extract a summary (first few sentences)
-        text_to_speak = extract_summary(response_text, max_sentences=3)
-        if text_to_speak:
-            text_to_speak = "Summary: " + text_to_speak
-    else:
-        text_to_speak = response_text
+    log_error(f"Response text length: {len(response_text)}")
 
-    # Speak the response
-    if text_to_speak:
-        speak(text_to_speak, config)
+    # Speak the full response (batching is handled by speak function)
+    speak(response_text, config)
 
     sys.exit(0)
 
