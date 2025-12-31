@@ -80,6 +80,10 @@ def clean_text_for_speech(text):
     if not text:
         return ""
 
+    # Ensure text is a string
+    if not isinstance(text, str):
+        text = str(text)
+
     # Remove ANSI escape codes (colors, bold, etc from terminal)
     text = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', text)
     text = re.sub(r'\x1b\].*?\x07', '', text)  # OSC sequences
@@ -87,6 +91,12 @@ def clean_text_for_speech(text):
 
     # Remove other control characters except newlines and tabs
     text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+
+    # Normalize all line breaks (Windows \r\n, old Mac \r, Unix \n, Unicode line separators)
+    text = text.replace('\r\n', '\n')
+    text = text.replace('\r', '\n')
+    text = text.replace('\u2028', '\n')  # Unicode line separator
+    text = text.replace('\u2029', '\n')  # Unicode paragraph separator
 
     # Remove code blocks
     text = re.sub(r'```[\s\S]*?```', ' code block omitted ', text)
@@ -101,8 +111,9 @@ def clean_text_for_speech(text):
     text = re.sub(r'_{1,2}([^_]+)_{1,2}', r'\1', text)  # underscore bold/italic
     text = re.sub(r'~~([^~]+)~~', r'\1', text)      # strikethrough
     text = re.sub(r'#{1,6}\s*', '', text)           # headers
-    text = re.sub(r'[-*]\s+', '', text)             # list items
-    text = re.sub(r'>\s+', '', text)                # blockquotes
+    text = re.sub(r'^[-*+]\s+', '', text, flags=re.MULTILINE)  # list items
+    text = re.sub(r'^>\s*', '', text, flags=re.MULTILINE)      # blockquotes
+    text = re.sub(r'^\d+\.\s+', '', text, flags=re.MULTILINE)  # numbered lists
 
     # Remove file paths (they don't speak well)
     text = re.sub(r'[A-Za-z]:[/\\][^\s]+', 'file path', text)
@@ -111,9 +122,14 @@ def clean_text_for_speech(text):
     # Remove URLs
     text = re.sub(r'https?://[^\s]+', 'link', text)
 
-    # Clean up whitespace
+    # Convert line breaks to periods for natural pauses
     text = re.sub(r'\n+', '. ', text)
+
+    # Clean up whitespace and punctuation
     text = re.sub(r'\s+', ' ', text)
+    text = re.sub(r'\.+', '.', text)  # Multiple periods to single
+    text = re.sub(r'\.\s*\.', '.', text)  # Period space period to single
+    text = re.sub(r'^\.\s*', '', text)  # Remove leading period
     text = text.strip()
 
     return text
