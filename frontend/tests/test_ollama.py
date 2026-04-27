@@ -4,8 +4,14 @@ from unittest.mock import patch, MagicMock
 
 from frontend.services.ollama import OllamaClient
 
+
+@pytest.fixture
+def client():
+    return OllamaClient("http://localhost:11434")
+
+
 class TestOllamaClient:
-    def test_list_models_returns_gemma4_first(self):
+    def test_list_models_returns_gemma4_first(self, client):
         mock_response = MagicMock()
         mock_response.json.return_value = {
             "models": [
@@ -16,14 +22,13 @@ class TestOllamaClient:
         }
         mock_response.raise_for_status = MagicMock()
 
-        with patch("requests.get", return_value=mock_response):
-            client = OllamaClient("http://localhost:11434")
+        with patch("frontend.services.ollama.requests.get", return_value=mock_response):
             models = client.list_models()
 
         assert models[0]["name"] == "gemma4:4b"
         assert len(models) == 2
 
-    def test_list_models_fallback_when_no_gemma4(self):
+    def test_list_models_fallback_when_no_gemma4(self, client):
         mock_response = MagicMock()
         mock_response.json.return_value = {
             "models": [
@@ -33,14 +38,13 @@ class TestOllamaClient:
         }
         mock_response.raise_for_status = MagicMock()
 
-        with patch("requests.get", return_value=mock_response):
-            client = OllamaClient("http://localhost:11434")
+        with patch("frontend.services.ollama.requests.get", return_value=mock_response):
             models = client.list_models()
 
         assert models[0]["name"] == "llama3:8b"
         assert len(models) == 2
 
-    def test_chat_stream_yields_chunks(self):
+    def test_chat_stream_yields_chunks(self, client):
         mock_response = MagicMock()
         mock_response.iter_lines.return_value = [
             json.dumps({"message": {"content": "Hello"}}),
@@ -49,8 +53,7 @@ class TestOllamaClient:
         ]
         mock_response.raise_for_status = MagicMock()
 
-        with patch("requests.post", return_value=mock_response):
-            client = OllamaClient("http://localhost:11434")
+        with patch("frontend.services.ollama.requests.post", return_value=mock_response):
             chunks = list(client.chat_stream("gemma4:4b", "Say hello", []))
 
         assert chunks == ["Hello", " world"]

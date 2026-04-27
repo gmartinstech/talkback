@@ -11,7 +11,7 @@ class OllamaClient:
         resp = requests.get(f"{self.base_url}/api/tags", timeout=10)
         resp.raise_for_status()
         data = resp.json()
-        models = data.get("models", [])
+        models = data.get("models") or []
 
         gemma_models = [m for m in models if "gemma" in m.get("name", "").lower()]
         if gemma_models:
@@ -35,7 +35,10 @@ class OllamaClient:
         for line in resp.iter_lines():
             if not line:
                 continue
-            data = json.loads(line)
+            try:
+                data = json.loads(line)
+            except json.JSONDecodeError:
+                continue
             if "message" in data and "content" in data["message"]:
                 yield data["message"]["content"]
             if data.get("done"):
