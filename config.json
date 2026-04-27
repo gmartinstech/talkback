@@ -17,5 +17,13 @@
   "batch_size": 1000,
 
   "fallback_to_sapi": true,
-  "log_file": "~/.claude/talkback.log"
+  "log_file": "~/.claude/talkback.log",
+
+  "frontend": {
+    "ollama_url": "http://localhost:11434",
+    "ollama_model": "gemma4:4b",
+    "hotkey": "Ctrl+Shift+T",
+    "window_width": 380,
+    "window_height": 600
+  }
 }
