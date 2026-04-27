@@ -88,6 +88,27 @@ python speak.py "Hello, this is a test"
 python.exe speak.py "Hello, this is a test"
 ```
 
+## PR Reviewer Frontend
+
+A floating chat widget for reviewing GitHub PRs with Ollama LLMs.
+
+### Run
+
+```bash
+python run-frontend.py
+```
+
+- System tray icon: click to show/hide chat
+- Hotkey: `Ctrl+Shift+T` toggles chat window
+- Paste a GitHub PR link to get a detailed walkthrough
+- Click referenced files to view syntax-highlighted diffs
+
+### Requirements
+
+```bash
+pip install PyQt6 PyQt6-WebEngine requests
+```
+
 ## Uninstall
 
 **Windows:** `.\uninstall.ps1`
