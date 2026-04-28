@@ -1,19 +1,51 @@
 # frontend/app.py
 import json
+import logging
 import os
 import sys
 import threading
 from pathlib import Path
 
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut
-from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
+from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut, QPixmap, QPainter, QColor
+from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QMessageBox
 
 from frontend.chat_window import ChatWindow
 from frontend.code_viewer import CodeViewerDialog
 from frontend.config_dialog import ConfigDialog
 from frontend.services.ollama import OllamaClient
 from frontend.services.github import GitHubClient
+
+
+def _setup_logging():
+    log_dir = Path.home() / ".claude"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_path = log_dir / "talkback-frontend.log"
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s %(levelname)s %(message)s",
+        handlers=[logging.FileHandler(log_path, mode="a"), logging.StreamHandler(sys.stdout)],
+    )
+    # Also catch unhandled exceptions
+    _orig_excepthook = sys.excepthook
+
+    def _excepthook(exc_type, exc_value, tb):
+        logging.error("Unhandled exception", exc_info=(exc_type, exc_value, tb))
+        _orig_excepthook(exc_type, exc_value, tb)
+
+    sys.excepthook = _excepthook
+    return log_path
+
+
+def _fix_qt_env():
+    # Qt WebEngine crashes on some Windows GPUs; disable GPU acceleration
+    if sys.platform == "win32":
+        os.environ.setdefault("QTWEBENGINE_CHROMIUM_FLAGS", "--disable-gpu --no-sandbox")
+        os.environ.setdefault("QT_OPENGL", "software")
+
+
+def _log_step(step: str):
+    logging.info(f"[startup] {step}")
 
 
 class ChatWorker(QThread):
@@ -39,20 +71,34 @@ class ChatWorker(QThread):
 
 
 class TalkBackApp(QApplication):
+    _models_loaded = pyqtSignal(list)
+    _models_failed = pyqtSignal(str)
+
     def __init__(self, argv):
+        _log_step("Creating QApplication")
         super().__init__(argv)
         self.setQuitOnLastWindowClosed(False)
 
+        _log_step("Loading config")
         self._config = self._load_config()
+        _log_step("Creating Ollama client")
         self._ollama = OllamaClient(self._config.get("ollama_url", "http://localhost:11434"))
+        _log_step("Creating GitHub client")
         self._github = GitHubClient()
         self._history = []
         self._current_worker = None
 
+        _log_step("Setting up tray")
         self._setup_tray()
+        _log_step("Setting up chat window")
         self._setup_chat()
+        _log_step("Setting up hotkey")
         self._setup_hotkey()
+        _log_step("Refreshing models")
+        self._models_loaded.connect(self._chat.set_models)
+        self._models_failed.connect(self._chat.set_models)
         self._refresh_models()
+        logging.info("TalkBackApp initialized successfully")
 
     def _load_config(self) -> dict:
         config_path = Path(__file__).parent.parent / "config.json"
@@ -70,9 +116,30 @@ class TalkBackApp(QApplication):
         except IOError:
             pass
 
+    def _create_tray_icon(self) -> QIcon:
+        size = 64
+        pixmap = QPixmap(size, size)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setBrush(QColor("#003566"))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(4, 4, size - 8, size - 8)
+        painter.setBrush(QColor("#F5CC00"))
+        painter.drawEllipse(size // 2 - 8, size // 2 - 8, 16, 16)
+        painter.end()
+        return QIcon(pixmap)
+
     def _setup_tray(self):
+        if not QSystemTrayIcon.isSystemTrayAvailable():
+            logging.warning("System tray not available; chat window will be visible on startup")
+            return
+
         self._tray = QSystemTrayIcon(self)
+        icon = self._create_tray_icon()
+        self._tray.setIcon(icon)
         self._tray.setToolTip("TalkBack PR Reviewer")
+        logging.info("Tray icon created")
 
         menu = QMenu()
         show_action = QAction("Show Chat", self)
@@ -94,11 +161,16 @@ class TalkBackApp(QApplication):
         self._tray.show()
 
     def _setup_chat(self):
-        self._chat = ChatWindow()
-        self._chat.hide()
-        self._chat.sendMessage.connect(self._on_message)
-        self._chat.openSettings.connect(self._open_settings)
-        self._chat.openFile.connect(self._on_open_file)
+        try:
+            self._chat = ChatWindow()
+            _log_step("ChatWindow created")
+            self._chat.hide()
+            self._chat.sendMessage.connect(self._on_message)
+            self._chat.openSettings.connect(self._open_settings)
+            self._chat.openFile.connect(self._on_open_file)
+        except Exception:
+            logging.exception("ChatWindow setup failed")
+            raise
 
     def _setup_hotkey(self):
         shortcut = QShortcut(
@@ -124,9 +196,15 @@ class TalkBackApp(QApplication):
             try:
                 models = self._ollama.list_models()
                 names = [m["name"] for m in models]
-                self._chat.set_models(names)
-            except Exception:
-                pass
+                if not names:
+                    logging.warning("Ollama returned no models")
+                    self._models_failed.emit(["No models installed"])
+                else:
+                    logging.info(f"Ollama models: {names}")
+                    self._models_loaded.emit(names)
+            except Exception as e:
+                logging.warning(f"Failed to fetch Ollama models: {e}")
+                self._models_failed.emit(["Ollama unreachable"])
         threading.Thread(target=fetch, daemon=True).start()
 
     def _on_message(self, text: str):
@@ -193,7 +271,11 @@ class TalkBackApp(QApplication):
 
     def _open_settings(self):
         dialog = ConfigDialog(config_path=Path(__file__).parent.parent / "config.json")
-        dialog.set_available_models([m["name"] for m in self._ollama.list_models()])
+        try:
+            dialog.set_available_models([m["name"] for m in self._ollama.list_models()])
+        except Exception as e:
+            logging.warning(f"Could not fetch models for settings: {e}")
+            dialog.set_available_models([])
         if dialog.exec() == ConfigDialog.DialogCode.Accepted:
             self._config = dialog.get_config()
             self._ollama = OllamaClient(self._config.get("ollama_url", "http://localhost:11434"))
@@ -206,8 +288,19 @@ class TalkBackApp(QApplication):
 
 
 def main():
-    app = TalkBackApp(sys.argv)
-    sys.exit(app.exec())
+    _fix_qt_env()
+    log_path = _setup_logging()
+    logging.info("=" * 40)
+    logging.info("TalkBack PR Reviewer starting...")
+    logging.info(f"Python: {sys.version}")
+    logging.info(f"Platform: {sys.platform}")
+    try:
+        app = TalkBackApp(sys.argv)
+        logging.info("Entering Qt event loop")
+        sys.exit(app.exec())
+    except Exception:
+        logging.exception("Fatal startup error")
+        raise
 
 
 if __name__ == "__main__":

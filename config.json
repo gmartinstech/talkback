@@ -25,5 +25,22 @@
     "hotkey": "Ctrl+Shift+T",
     "window_width": 380,
     "window_height": 600
+  },
+
+  "qwen": {
+    "model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+    "speaker": "Ryan",
+    "language": "Auto",
+    "instruct": null,
+    "voice_clone": {
+      "enabled": false,
+      "ref_audio": null,
+      "ref_text": null
+    }
+  },
+
+  "streaming": {
+    "enabled": true,
+    "sentence_chunking": true
   }
 }

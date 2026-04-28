@@ -16,7 +16,7 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from speak import speak, load_config, log_error, clean_text_for_speech
+from speak import speak, speak_chunks, load_config, log_error, clean_text_for_speech
 
 
 def read_hook_input():
@@ -144,8 +144,12 @@ def main():
 
     log_error(f"Response text length: {len(response_text)}")
 
-    # Speak the full response (batching is handled by speak function)
-    speak(response_text, config)
+    # Speak the response — use chunked streaming if enabled
+    streaming_cfg = config.get("streaming", {})
+    if streaming_cfg.get("enabled", False) and streaming_cfg.get("sentence_chunking", False):
+        speak_chunks(response_text, config)
+    else:
+        speak(response_text, config)
 
     sys.exit(0)
 

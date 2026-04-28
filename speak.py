@@ -22,14 +22,29 @@ IS_WINDOWS = sys.platform == 'win32'
 CONFIG_PATH = Path(__file__).parent / "config.json"
 DEFAULT_CONFIG = {
     "enabled": True,
-    "tts_engine": "auto",  # auto, kokoro, edge, sapi
+    "tts_engine": "auto",  # auto, qwen, kokoro, edge, sapi
     "voice": "en-US-AriaNeural",  # Edge TTS voice
     "kokoro_voice": "af_bella",  # Kokoro voice (af_bella, am_adam, etc.)
     "rate": "+10%",
     "volume": "+0%",
     "max_speak_length": 500,
     "fallback_to_sapi": True,
-    "log_file": "~/.claude/talkback.log"
+    "log_file": "~/.claude/talkback.log",
+    "qwen": {
+        "model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+        "speaker": "Ryan",
+        "language": "Auto",
+        "instruct": None,
+        "voice_clone": {
+            "enabled": False,
+            "ref_audio": None,
+            "ref_text": None
+        }
+    },
+    "streaming": {
+        "enabled": True,
+        "sentence_chunking": True
+    }
 }
 
 # Kokoro voice options
@@ -48,6 +63,19 @@ KOKORO_VOICES = {
     # British Male
     "bm_george": "British Male - George",
     "bm_lewis": "British Male - Lewis",
+}
+
+# Qwen3-TTS preset speakers
+QWEN_VOICES = {
+    "Vivian": "Bright, slightly edgy young female (Chinese native)",
+    "Serena": "Warm, gentle young female (Chinese native)",
+    "Uncle_Fu": "Seasoned male, low mellow timbre (Chinese native)",
+    "Dylan": "Youthful Beijing male, clear natural timbre (Chinese native)",
+    "Eric": "Lively Chengdu male, slightly husky brightness (Chinese native)",
+    "Ryan": "Dynamic male with strong rhythmic drive (English native)",
+    "Aiden": "Sunny American male, clear midrange (English native)",
+    "Ono_Anna": "Playful Japanese female, light nimble timbre (Japanese native)",
+    "Sohee": "Warm Korean female, rich emotion (Korean native)",
 }
 
 
@@ -375,15 +403,125 @@ def is_kokoro_available():
         return False
 
 
+# -----------------------------------------------------------------------------
+# Qwen3-TTS support
+# -----------------------------------------------------------------------------
+_qwen_model = None
+
+
+def is_qwen_available():
+    """Check if Qwen3-TTS is installed and available"""
+    try:
+        import qwen_tts
+        import torch
+        return True
+    except ImportError:
+        return False
+
+
+def get_qwen_model(config):
+    """Lazy-load and cache Qwen3-TTS model"""
+    global _qwen_model
+    if _qwen_model is not None:
+        return _qwen_model
+    try:
+        import torch
+        from qwen_tts import Qwen3TTSModel
+
+        qwen_cfg = config.get("qwen", {})
+        model_name = qwen_cfg.get("model", "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice")
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+
+        log_error(f"Loading Qwen3-TTS model: {model_name} on {device}")
+        _qwen_model = Qwen3TTSModel.from_pretrained(
+            model_name,
+            device_map=device,
+            dtype=dtype,
+        )
+        return _qwen_model
+    except Exception as e:
+        log_error(f"Failed to load Qwen3-TTS model: {e}")
+        return None
+
+
+def speak_qwen(text, config):
+    """Speak text using Qwen3-TTS (high-quality local neural TTS)"""
+    try:
+        import soundfile as sf
+
+        model = get_qwen_model(config)
+        if model is None:
+            return False
+
+        qwen_cfg = config.get("qwen", {})
+        language = qwen_cfg.get("language", "Auto")
+        speaker = qwen_cfg.get("speaker", "Ryan")
+        instruct = qwen_cfg.get("instruct") or None
+        model_name = qwen_cfg.get("model", "")
+
+        if "VoiceDesign" in model_name:
+            wavs, sr = model.generate_voice_design(
+                text=text, language=language, instruct=instruct
+            )
+        elif "Base" in model_name and qwen_cfg.get("voice_clone", {}).get("enabled"):
+            clone_cfg = qwen_cfg["voice_clone"]
+            wavs, sr = model.generate_voice_clone(
+                text=text,
+                language=language,
+                ref_audio=clone_cfg.get("ref_audio"),
+                ref_text=clone_cfg.get("ref_text"),
+            )
+        else:
+            # Default: CustomVoice preset speakers
+            wavs, sr = model.generate_custom_voice(
+                text=text, language=language, speaker=speaker, instruct=instruct
+            )
+
+        if not wavs or len(wavs) == 0:
+            return False
+
+        if IS_WSL:
+            temp_dir = "/mnt/c/temp"
+            os.makedirs(temp_dir, exist_ok=True)
+            tmp_path = os.path.join(temp_dir, f"talkback_qwen_{os.getpid()}.wav")
+        else:
+            tmp_path = tempfile.mktemp(suffix=".wav")
+
+        sf.write(tmp_path, wavs[0], sr)
+        success = play_audio_file(tmp_path)
+
+        try:
+            os.unlink(tmp_path)
+        except Exception:
+            pass
+
+        return success
+
+    except ImportError as e:
+        log_error(f"Qwen3-TTS not installed: {e}. Run: pip install qwen-tts soundfile torch")
+        return False
+    except Exception as e:
+        log_error(f"Qwen3-TTS error: {e}")
+        return False
+
+
 def speak_single_batch(text, config, engine):
     """Speak a single batch of text using the specified engine"""
     success = False
 
+    if engine == "qwen":
+        success = speak_qwen(text, config)
+        if success:
+            return True
+
     if engine == "kokoro":
         kokoro_voice = config.get("kokoro_voice", "af_bella")
         success = speak_kokoro(text, kokoro_voice)
+        if success:
+            return True
 
-    if not success and engine in ("edge", "auto") or (engine == "kokoro" and not success):
+    if engine in ("edge", "auto"):
         voice = config.get("voice", "en-US-AriaNeural")
         rate = config.get("rate", "+10%")
         volume = config.get("volume", "+0%")
@@ -391,14 +529,18 @@ def speak_single_batch(text, config, engine):
             success = asyncio.run(speak_edge_tts(text, voice, rate, volume))
         except Exception as e:
             log_error(f"Edge TTS failed: {e}")
+        if success:
+            return True
 
     # Fallback to SAPI (Windows/WSL)
-    if not success and config.get("fallback_to_sapi", True) and (IS_WINDOWS or IS_WSL):
+    if config.get("fallback_to_sapi", True) and (IS_WINDOWS or IS_WSL):
         sapi_rate = 2  # slightly faster than default
         success = speak_sapi(text, sapi_rate)
+        if success:
+            return True
 
     # Last resort: espeak on Linux
-    if not success and not IS_WINDOWS:
+    if not IS_WINDOWS:
         success = speak_espeak(text)
 
     return success
@@ -491,7 +633,9 @@ def speak(text, config=None):
 
     # Auto-select engine based on environment
     if engine == "auto":
-        if IS_WSL and is_kokoro_available():
+        if is_qwen_available():
+            engine = "qwen"
+        elif IS_WSL and is_kokoro_available():
             engine = "kokoro"
         elif IS_WINDOWS or IS_WSL:
             engine = "edge"
@@ -548,6 +692,46 @@ def speak(text, config=None):
         speak_single_batch(text, config, engine)
 
 
+def speak_chunks(text, config=None):
+    """Speak text in sentence chunks for faster time-to-audio (pseudo-streaming)"""
+    if config is None:
+        config = load_config()
+
+    if not config.get("enabled", True):
+        return
+
+    text = clean_text_for_speech(text)
+    if not text:
+        return
+
+    sentences = split_into_sentences(text)
+    if not sentences:
+        return
+
+    engine = config.get("tts_engine", "auto")
+    if engine == "auto":
+        if is_qwen_available():
+            engine = "qwen"
+        elif IS_WSL and is_kokoro_available():
+            engine = "kokoro"
+        elif IS_WINDOWS or IS_WSL:
+            engine = "edge"
+        else:
+            engine = "espeak"
+
+    # Edge TTS already supports true streaming via mpv; use the normal path
+    if engine == "edge":
+        speak(text, config)
+        return
+
+    # For local engines, speak sentence-by-sentence to reduce time-to-first-audio
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        speak_single_batch(sentence, config, engine)
+
+
 def speak_announcement(message, config=None):
     """Speak a short announcement (tool completion, etc.)"""
     if config is None:
@@ -580,6 +764,15 @@ def list_kokoro_voices():
     print()
 
 
+def list_qwen_voices():
+    """Print available Qwen3-TTS voices"""
+    print("Available Qwen3-TTS Preset Voices:")
+    print("-" * 40)
+    for voice_id, description in QWEN_VOICES.items():
+        print(f"  {voice_id:15} - {description}")
+    print()
+
+
 if __name__ == "__main__":
     # Test the TTS engine
     print(f"Environment: {'WSL' if IS_WSL else 'Windows' if IS_WINDOWS else 'Linux'}")
@@ -589,6 +782,8 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         if sys.argv[1] == "--voices":
             list_kokoro_voices()
+            print("\n")
+            list_qwen_voices()
             sys.exit(0)
         elif sys.argv[1] in ("--file", "-f"):
             # Read text from file
