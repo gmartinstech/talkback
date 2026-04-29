@@ -75,7 +75,8 @@ public class TalkBackApp extends Application {
             this::onOpenFile,
             this::openSettings,
             this::onModelChanged,
-            () -> chat.getStage().setIconified(true)
+            () -> chat.getStage().setIconified(true),
+            () -> Platform.exit()
         );
         bridge.install(engine);
 

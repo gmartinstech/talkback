@@ -1,8 +1,10 @@
 package net.martinstech.talkback.ui;
 
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.paint.Color;
 import javafx.scene.web.WebView;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
@@ -20,6 +22,7 @@ public class ChatStage {
         stage.setWidth(380);
         stage.setHeight(600);
         stage.setTitle("TalkBack Reviewer");
+        positionNearTray();
 
         webView = new WebView();
         var engine = webView.getEngine();
@@ -35,7 +38,15 @@ public class ChatStage {
         stage.setScene(scene);
     }
 
+    private void positionNearTray() {
+        Rectangle2D bounds = Screen.getPrimary().getVisualBounds();
+        double padding = 16;
+        stage.setX(bounds.getMaxX() - stage.getWidth() - padding);
+        stage.setY(bounds.getMaxY() - stage.getHeight() - padding);
+    }
+
     public void show() {
+        positionNearTray();
         stage.show();
         stage.toFront();
     }

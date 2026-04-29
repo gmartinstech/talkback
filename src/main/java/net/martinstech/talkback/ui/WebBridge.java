@@ -16,17 +16,20 @@ public class WebBridge {
     private final Runnable onShowSettings;
     private final Consumer<String> onModelChanged;
     private final Runnable onMinimize;
+    private final Runnable onClose;
 
     public WebBridge(Consumer<String> onMessage,
                      Consumer<String> onOpenFile,
                      Runnable onShowSettings,
                      Consumer<String> onModelChanged,
-                     Runnable onMinimize) {
+                     Runnable onMinimize,
+                     Runnable onClose) {
         this.onMessage = onMessage;
         this.onOpenFile = onOpenFile;
         this.onShowSettings = onShowSettings;
         this.onModelChanged = onModelChanged;
         this.onMinimize = onMinimize;
+        this.onClose = onClose;
     }
 
     public void send(String text) {
@@ -47,6 +50,10 @@ public class WebBridge {
 
     public void minimize() {
         Platform.runLater(onMinimize);
+    }
+
+    public void close() {
+        Platform.runLater(onClose);
     }
 
     /**
