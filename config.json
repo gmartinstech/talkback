@@ -7,6 +7,7 @@
   "ollamaUrl" : "http://localhost:11434",
   "ollamaModel" : "kimi-k2.6:cloud",
   "ttsEngine" : "edge",
+  "webSearchEnabled" : true,
   "frontend" : {
     "hotkey" : "Ctrl+Shift+T",
     "windowWidth" : 380,

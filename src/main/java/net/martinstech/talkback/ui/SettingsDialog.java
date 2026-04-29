@@ -17,6 +17,7 @@ public class SettingsDialog extends Dialog<AppConfig> {
     private final ComboBox<String> ttsBox;
     private final CheckBox speakResponsesBox;
     private final CheckBox speakThinkingBox;
+    private final CheckBox webSearchBox;
 
     public SettingsDialog(AppConfig current, List<String> models) {
         setTitle("TalkBack Settings");
@@ -48,6 +49,9 @@ public class SettingsDialog extends Dialog<AppConfig> {
         speakThinkingBox = new CheckBox("Read thinking tokens");
         speakThinkingBox.setSelected(current.speakThinking());
 
+        webSearchBox = new CheckBox("Enable web search");
+        webSearchBox.setSelected(current.webSearchEnabled());
+
         grid.add(new Label("Ollama URL"), 0, 0);
         grid.add(urlField, 1, 0);
         grid.add(new Label("Model"), 0, 1);
@@ -56,6 +60,7 @@ public class SettingsDialog extends Dialog<AppConfig> {
         grid.add(ttsBox, 1, 2);
         grid.add(speakResponsesBox, 0, 3);
         grid.add(speakThinkingBox, 0, 4);
+        grid.add(webSearchBox, 0, 5);
 
         getDialogPane().setContent(grid);
         getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
@@ -71,6 +76,7 @@ public class SettingsDialog extends Dialog<AppConfig> {
                     urlField.getText(),
                     modelBox.getValue(),
                     ttsBox.getValue(),
+                    webSearchBox.isSelected(),
                     current.frontend()
                 );
                 return result;

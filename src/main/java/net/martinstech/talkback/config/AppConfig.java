@@ -21,6 +21,7 @@ public final class AppConfig {
     private String ollamaUrl = "http://localhost:11434";
     private String ollamaModel = "gemma4:4b";
     private String ttsEngine = "edge";
+    private boolean webSearchEnabled = true;
     private FrontendSettings frontend = new FrontendSettings();
 
     /** Default no-arg constructor for Jackson deserialization. */
@@ -28,7 +29,8 @@ public final class AppConfig {
 
     public AppConfig(boolean enabled, String voice, boolean speakResponses,
                      boolean speakThinking, int maxSpeakLength, String ollamaUrl,
-                     String ollamaModel, String ttsEngine, FrontendSettings frontend) {
+                     String ollamaModel, String ttsEngine, boolean webSearchEnabled,
+                     FrontendSettings frontend) {
         this.enabled = enabled;
         this.voice = Objects.requireNonNull(voice);
         this.speakResponses = speakResponses;
@@ -37,6 +39,7 @@ public final class AppConfig {
         this.ollamaUrl = Objects.requireNonNull(ollamaUrl);
         this.ollamaModel = Objects.requireNonNull(ollamaModel);
         this.ttsEngine = Objects.requireNonNull(ttsEngine);
+        this.webSearchEnabled = webSearchEnabled;
         this.frontend = Objects.requireNonNull(frontend);
     }
 
@@ -48,6 +51,7 @@ public final class AppConfig {
     public String ollamaUrl() { return ollamaUrl; }
     public String ollamaModel() { return ollamaModel; }
     public String ttsEngine() { return ttsEngine; }
+    public boolean webSearchEnabled() { return webSearchEnabled; }
     public FrontendSettings frontend() { return frontend; }
 
     public void setOllamaUrl(String ollamaUrl) { this.ollamaUrl = Objects.requireNonNull(ollamaUrl); }
@@ -56,6 +60,7 @@ public final class AppConfig {
     public void setMaxSpeakLength(int maxSpeakLength) { this.maxSpeakLength = Math.max(1, maxSpeakLength); }
     public void setSpeakResponses(boolean speakResponses) { this.speakResponses = speakResponses; }
     public void setSpeakThinking(boolean speakThinking) { this.speakThinking = speakThinking; }
+    public void setWebSearchEnabled(boolean webSearchEnabled) { this.webSearchEnabled = webSearchEnabled; }
 
     /**
      * Loads configuration from the given JSON file path.

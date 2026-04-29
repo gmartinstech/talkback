@@ -6,6 +6,7 @@ import net.martinstech.talkback.config.ConfigScope;
 import net.martinstech.talkback.service.GitHubService;
 import net.martinstech.talkback.service.OllamaService;
 import net.martinstech.talkback.service.TtsService;
+import net.martinstech.talkback.service.WebSearchService;
 import net.martinstech.talkback.ui.ChatStage;
 import net.martinstech.talkback.ui.CodeViewerStage;
 import net.martinstech.talkback.ui.HotkeyManager;
@@ -25,6 +26,7 @@ import javafx.stage.Stage;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -43,6 +45,7 @@ public class TalkBackApp extends Application {
     private OllamaService ollama;
     private GitHubService github;
     private TtsService tts;
+    private WebSearchService webSearch;
     private ChatStage chat;
     private CodeViewerStage codeViewer;
     private final List<String> pendingScripts = new ArrayList<>();
@@ -58,6 +61,7 @@ public class TalkBackApp extends Application {
         ollama = new OllamaService(config.ollamaUrl());
         github = new GitHubService(REPOS_DIR);
         tts = new TtsService(Path.of(".").toAbsolutePath().getParent(), config.maxSpeakLength());
+        webSearch = new WebSearchService();
 
         chat = new ChatStage();
         codeViewer = new CodeViewerStage();
@@ -132,7 +136,11 @@ public class TalkBackApp extends Application {
 
     private void handleChat(String text) {
         history.add(new UserMessage(text));
-        streamAssistant(text);
+        if (config.webSearchEnabled()) {
+            streamAssistantWithTools(text);
+        } else {
+            streamAssistant(text);
+        }
     }
 
     private void streamAssistant(String prompt) {
@@ -168,6 +176,73 @@ public class TalkBackApp extends Application {
                 }
             })
         );
+    }
+
+    private void streamAssistantWithTools(String prompt) {
+        var ollamaMessages = toOllamaMessages(history);
+        ollamaMessages.add(new OllamaService.OllamaMessage("user", prompt, null, null));
+
+        var webSearchTool = new OllamaService.ToolDefinition(
+            "web_search",
+            "Search the web for current information, news, facts, or documentation. " +
+            "Use when the user asks about recent events, current data, or information " +
+            "that may not be in your training data.",
+            Map.of(
+                "type", "object",
+                "properties", Map.of(
+                    "query", Map.of(
+                        "type", "string",
+                        "description", "The search query string"
+                    )
+                ),
+                "required", List.of("query")
+            )
+        );
+
+        var sb = new StringBuilder();
+
+        ollama.chatStreamWithTools(
+            config.ollamaModel(),
+            ollamaMessages,
+            List.of(webSearchTool),
+            tc -> {
+                String query = (String) tc.arguments().get("query");
+                System.out.println("[web_search] query=" + query);
+                var results = webSearch.search(query);
+                return webSearch.formatForLlm(results);
+            },
+            token -> Platform.runLater(() -> {
+                sb.append(token);
+                injectScript("window.appendAssistantChunk(`" + escapeJs(token) + "`);");
+            }),
+            error -> Platform.runLater(() -> {
+                injectScript("window.setTyping(false);");
+                injectScript("window.appendMessage('assistant', `**Error:** " + escapeJs(error.getMessage()) + "`);");
+            }),
+            () -> Platform.runLater(() -> {
+                injectScript("window.setTyping(false);");
+                injectScript("window.finalizeAssistantMessage();");
+                history.add(new AiMessage(sb.toString()));
+                if (history.size() > 20) {
+                    history.removeFirst();
+                }
+                if (config.speakResponses()) {
+                    executor.submit(() -> tts.speak(sb.toString()));
+                }
+            })
+        );
+    }
+
+    private List<OllamaService.OllamaMessage> toOllamaMessages(List<ChatMessage> messages) {
+        var result = new ArrayList<OllamaService.OllamaMessage>();
+        for (ChatMessage msg : messages) {
+            if (msg instanceof UserMessage um) {
+                result.add(new OllamaService.OllamaMessage("user", um.singleText(), null, null));
+            } else if (msg instanceof AiMessage am) {
+                result.add(new OllamaService.OllamaMessage("assistant", am.text(), null, null));
+            }
+        }
+        return result;
     }
 
     private void onOpenFile(String filePath) {
