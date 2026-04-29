@@ -116,6 +116,10 @@ public class TalkBackApp extends Application {
         injectScript("window.appendMessage('user', `" + escapeJs(text) + "`);");
         injectScript("window.setTyping(true);");
 
+        if (handleHelpCommand(text)) {
+            return;
+        }
+
         if (handleSkillsCommand(text)) {
             return;
         }
@@ -319,6 +323,26 @@ public class TalkBackApp extends Application {
         });
     }
 
+    private boolean handleHelpCommand(String text) {
+        String trimmed = text.trim();
+        if (!trimmed.equals("/ajuda") && !trimmed.equals("/help")) {
+            return false;
+        }
+        String help = "**Comandos disponíveis:**\n"
+            + "`/ajuda` — mostrar esta mensagem\n"
+            + "`/skills` — gerenciar habilidades\n"
+            + "  `/skills listar` — listar instaladas\n"
+            + "  `/skills buscar <termo>` — buscar habilidades\n"
+            + "  `/skills instalar <pacote>` — instalar uma habilidade\n"
+            + "  `/skills remover <habilidade>` — remover uma habilidade\n"
+            + "  `/skills atualizar` — atualizar todas\n"
+            + "  `/skills info <habilidade>` — detalhes da habilidade\n\n"
+            + "Também pode colar um link de PR do GitHub para revisão automática.";
+        injectSystemMessage(help);
+        injectScript("window.setTyping(false);");
+        return true;
+    }
+
     private boolean handleSkillsCommand(String text) {
         String trimmed = text.trim();
         if (!trimmed.startsWith("/skills")) {
@@ -338,14 +362,14 @@ public class TalkBackApp extends Application {
             String argument = parts.length > 1 ? parts[1].trim() : "";
 
             switch (subcommand) {
-                case "list" -> handleSkillsList();
-                case "search" -> handleSkillsSearch(argument);
-                case "add" -> handleSkillsAdd(argument);
-                case "remove" -> handleSkillsRemove(argument);
-                case "update" -> handleSkillsUpdate();
-                case "info" -> handleSkillsInfo(argument);
+                case "list", "listar" -> handleSkillsList();
+                case "search", "buscar" -> handleSkillsSearch(argument);
+                case "add", "instalar" -> handleSkillsAdd(argument);
+                case "remove", "remover" -> handleSkillsRemove(argument);
+                case "update", "atualizar" -> handleSkillsUpdate();
+                case "info", "detalhes" -> handleSkillsInfo(argument);
                 default -> Platform.runLater(() -> {
-                    injectSystemMessage("Unknown skills command: `" + subcommand + "`. Type `/skills` for help.");
+                    injectSystemMessage("**Erro:** Comando desconhecido: `" + subcommand + "`. Digite `/skills` para ajuda.");
                     injectScript("window.setTyping(false);");
                 });
             }
@@ -355,13 +379,13 @@ public class TalkBackApp extends Application {
     }
 
     private void showSkillsHelp() {
-        String help = "**Skills Commands:**\n"
-            + "/skills list — list installed skills\n"
-            + "/skills search <query> — find skills\n"
-            + "/skills add <package> — install a skill\n"
-            + "/skills remove <skill> — remove a skill\n"
-            + "/skills update — update all skills\n"
-            + "/skills info <skill> — show skill details";
+        String help = "**Comandos de Habilidades:**\n"
+            + "/skills listar — listar habilidades instaladas\n"
+            + "/skills buscar <termo> — buscar habilidades\n"
+            + "/skills instalar <pacote> — instalar uma habilidade\n"
+            + "/skills remover <habilidade> — remover uma habilidade\n"
+            + "/skills atualizar — atualizar todas as habilidades\n"
+            + "/skills info <habilidade> — mostrar detalhes da habilidade";
         injectSystemMessage(help);
     }
 
@@ -370,9 +394,9 @@ public class TalkBackApp extends Application {
             var installed = skills.listInstalledSkills();
             Platform.runLater(() -> {
                 if (installed.isEmpty()) {
-                    injectSystemMessage("**Installed Skills:**\n_No skills installed._");
+                    injectSystemMessage("**Habilidades Instaladas:**\n_Nenhuma habilidade instalada._");
                 } else {
-                    StringBuilder sb = new StringBuilder("**Installed Skills:**\n");
+                    StringBuilder sb = new StringBuilder("**Habilidades Instaladas:**\n");
                     for (int i = 0; i < installed.size(); i++) {
                         var s = installed.get(i);
                         sb.append(i + 1).append(". ").append(s.name());
@@ -387,7 +411,7 @@ public class TalkBackApp extends Application {
             });
         } catch (Exception e) {
             Platform.runLater(() -> {
-                injectSystemMessage("**Error:** Failed to list skills — " + e.getMessage());
+                injectSystemMessage("**Erro:** Falha ao listar habilidades — " + e.getMessage());
                 injectScript("window.setTyping(false);");
             });
         }
@@ -396,7 +420,7 @@ public class TalkBackApp extends Application {
     private void handleSkillsSearch(String query) {
         if (query.isBlank()) {
             Platform.runLater(() -> {
-                injectSystemMessage("**Error:** Please provide a search query. Usage: `/skills search <query>`");
+                injectSystemMessage("**Erro:** Forneça um termo de busca. Uso: `/skills buscar <termo>`");
                 injectScript("window.setTyping(false);");
             });
             return;
@@ -405,17 +429,17 @@ public class TalkBackApp extends Application {
             var results = skills.findSkills(query);
             Platform.runLater(() -> {
                 if (results.isEmpty()) {
-                    injectSystemMessage("**Search Results:**\n_No skills found for \"" + query + "\"._");
+                    injectSystemMessage("**Resultados da Busca:**\n_Nenhuma habilidade encontrada para \"" + query + "\"._");
                 } else {
-                    StringBuilder sb = new StringBuilder("**Search Results for \"" + query + "\":**\n");
+                    StringBuilder sb = new StringBuilder("**Resultados da busca para \"" + query + "\":**\n");
                     for (int i = 0; i < results.size(); i++) {
                         var s = results.get(i);
                         sb.append(i + 1).append(". **").append(s.name()).append("**");
                         if (s.installs() > 0) {
-                            sb.append(" (").append(String.format("%,d", s.installs())).append(" installs)");
+                            sb.append(" (").append(String.format("%,d", s.installs())).append(" instalações)");
                         }
                         if (s.installed()) {
-                            sb.append(" ✓ installed");
+                            sb.append(" ✓ instalada");
                         }
                         if (!s.source().isBlank()) {
                             sb.append(" — `").append(s.source()).append("`");
@@ -428,7 +452,7 @@ public class TalkBackApp extends Application {
             });
         } catch (Exception e) {
             Platform.runLater(() -> {
-                injectSystemMessage("**Error:** Search failed — " + e.getMessage());
+                injectSystemMessage("**Erro:** Falha na busca — " + e.getMessage());
                 injectScript("window.setTyping(false);");
             });
         }
@@ -437,7 +461,7 @@ public class TalkBackApp extends Application {
     private void handleSkillsAdd(String packageSpec) {
         if (packageSpec.isBlank()) {
             Platform.runLater(() -> {
-                injectSystemMessage("**Error:** Please provide a package. Usage: `/skills add <package>`");
+                injectSystemMessage("**Erro:** Forneça um pacote. Uso: `/skills instalar <pacote>`");
                 injectScript("window.setTyping(false);");
             });
             return;
@@ -445,9 +469,9 @@ public class TalkBackApp extends Application {
         boolean success = skills.addSkill(packageSpec);
         Platform.runLater(() -> {
             if (success) {
-                injectSystemMessage("**Success:** Skill `" + packageSpec + "` installed.");
+                injectSystemMessage("**Sucesso:** Habilidade `" + packageSpec + "` instalada.");
             } else {
-                injectSystemMessage("**Error:** Failed to install skill `" + packageSpec + "`.");
+                injectSystemMessage("**Erro:** Falha ao instalar habilidade `" + packageSpec + "`.");
             }
             injectScript("window.setTyping(false);");
         });
@@ -456,7 +480,7 @@ public class TalkBackApp extends Application {
     private void handleSkillsRemove(String skillName) {
         if (skillName.isBlank()) {
             Platform.runLater(() -> {
-                injectSystemMessage("**Error:** Please provide a skill name. Usage: `/skills remove <skill>`");
+                injectSystemMessage("**Erro:** Forneça o nome da habilidade. Uso: `/skills remover <habilidade>`");
                 injectScript("window.setTyping(false);");
             });
             return;
@@ -464,9 +488,9 @@ public class TalkBackApp extends Application {
         boolean success = skills.removeSkill(skillName);
         Platform.runLater(() -> {
             if (success) {
-                injectSystemMessage("**Success:** Skill `" + skillName + "` removed.");
+                injectSystemMessage("**Sucesso:** Habilidade `" + skillName + "` removida.");
             } else {
-                injectSystemMessage("**Error:** Failed to remove skill `" + skillName + "`.");
+                injectSystemMessage("**Erro:** Falha ao remover habilidade `" + skillName + "`.");
             }
             injectScript("window.setTyping(false);");
         });
@@ -477,15 +501,15 @@ public class TalkBackApp extends Application {
             boolean success = skills.updateSkills().join();
             Platform.runLater(() -> {
                 if (success) {
-                    injectSystemMessage("**Success:** All skills updated.");
+                    injectSystemMessage("**Sucesso:** Todas as habilidades atualizadas.");
                 } else {
-                    injectSystemMessage("**Error:** Skills update failed.");
+                    injectSystemMessage("**Erro:** Falha ao atualizar habilidades.");
                 }
                 injectScript("window.setTyping(false);");
             });
         } catch (Exception e) {
             Platform.runLater(() -> {
-                injectSystemMessage("**Error:** Update failed — " + e.getMessage());
+                injectSystemMessage("**Erro:** Falha na atualização — " + e.getMessage());
                 injectScript("window.setTyping(false);");
             });
         }
@@ -494,7 +518,7 @@ public class TalkBackApp extends Application {
     private void handleSkillsInfo(String skillPath) {
         if (skillPath.isBlank()) {
             Platform.runLater(() -> {
-                injectSystemMessage("**Error:** Please provide a skill name. Usage: `/skills info <skill>`");
+                injectSystemMessage("**Erro:** Forneça o nome da habilidade. Uso: `/skills info <habilidade>`");
                 injectScript("window.setTyping(false);");
             });
             return;
@@ -503,7 +527,7 @@ public class TalkBackApp extends Application {
             var info = skills.getSkillDetails(skillPath);
             Platform.runLater(() -> {
                 if (info == null) {
-                    injectSystemMessage("**Error:** Skill `" + skillPath + "` not found.");
+                    injectSystemMessage("**Erro:** Habilidade `" + skillPath + "` não encontrada.");
                 } else {
                     StringBuilder sb = new StringBuilder();
                     sb.append("**").append(info.name()).append("**\n\n");
@@ -514,7 +538,7 @@ public class TalkBackApp extends Application {
                         sb.append("**ID:** `").append(info.id()).append("`\n");
                     }
                     if (!info.source().isBlank()) {
-                        sb.append("**Source:** `").append(info.source()).append("`\n");
+                        sb.append("**Fonte:** `").append(info.source()).append("`\n");
                     }
                     if (!info.content().isBlank()) {
                         String[] lines = info.content().split("\n", 21);
@@ -531,7 +555,7 @@ public class TalkBackApp extends Application {
                         if (previewStr.length() > 800) {
                             previewStr = previewStr.substring(0, 800) + "...";
                         }
-                        sb.append("\n**Preview:**\n```markdown\n").append(previewStr).append("\n```");
+                        sb.append("\n**Pré-visualização:**\n```markdown\n").append(previewStr).append("\n```");
                     }
                     injectSystemMessage(sb.toString());
                 }
@@ -539,7 +563,7 @@ public class TalkBackApp extends Application {
             });
         } catch (Exception e) {
             Platform.runLater(() -> {
-                injectSystemMessage("**Error:** Failed to get skill info — " + e.getMessage());
+                injectSystemMessage("**Erro:** Falha ao obter informações da habilidade — " + e.getMessage());
                 injectScript("window.setTyping(false);");
             });
         }

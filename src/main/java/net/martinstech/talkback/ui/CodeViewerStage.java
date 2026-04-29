@@ -20,7 +20,7 @@ public class CodeViewerStage {
         stage.initModality(Modality.NONE);
         stage.setWidth(800);
         stage.setHeight(600);
-        stage.setTitle("TalkBack Diff Viewer");
+        stage.setTitle("TalkBack Visualizador de Diferenças");
 
         webView = new WebView();
         var engine = webView.getEngine();
@@ -32,7 +32,7 @@ public class CodeViewerStage {
             ".add{color:#34D399}\n" +
             ".del{color:#F87171}\n" +
             ".info{color:#94A3B8}\n" +
-            "</style></head><body><pre id='content'>Loading diff...</pre>\n" +
+            "</style></head><body><pre id='content'>Carregando diff...</pre>\n" +
             "<script>window.setDiff=function(text){document.getElementById('content').innerHTML=text;}</script>\n" +
             "</body></html>"
         );

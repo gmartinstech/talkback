@@ -29,11 +29,11 @@ public class SystemTrayManager {
         trayIcon.addActionListener(e -> onToggle.run());
 
         var menu = new PopupMenu();
-        var showItem = new MenuItem("Show Chat");
+        var showItem = new MenuItem("Mostrar Chat");
         showItem.addActionListener(e -> onToggle.run());
         menu.add(showItem);
 
-        var exitItem = new MenuItem("Exit");
+        var exitItem = new MenuItem("Sair");
         exitItem.addActionListener(e -> System.exit(0));
         menu.addSeparator();
         menu.add(exitItem);

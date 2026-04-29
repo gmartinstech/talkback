@@ -20,7 +20,7 @@ public class SettingsDialog extends Dialog<AppConfig> {
     private final CheckBox webSearchBox;
 
     public SettingsDialog(AppConfig current, List<String> models) {
-        setTitle("TalkBack Settings");
+        setTitle("TalkBack Configurações");
         initModality(Modality.APPLICATION_MODAL);
 
         var grid = new GridPane();
@@ -43,20 +43,20 @@ public class SettingsDialog extends Dialog<AppConfig> {
         ttsBox.getItems().addAll("edge", "sapi", "kokoro", "qwen");
         ttsBox.setValue(current.ttsEngine());
 
-        speakResponsesBox = new CheckBox("Auto-read responses");
+        speakResponsesBox = new CheckBox("Auto-ler respostas");
         speakResponsesBox.setSelected(current.speakResponses());
 
-        speakThinkingBox = new CheckBox("Read thinking tokens");
+        speakThinkingBox = new CheckBox("Ler tokens de raciocínio");
         speakThinkingBox.setSelected(current.speakThinking());
 
-        webSearchBox = new CheckBox("Enable web search");
+        webSearchBox = new CheckBox("Ativar busca na web");
         webSearchBox.setSelected(current.webSearchEnabled());
 
-        grid.add(new Label("Ollama URL"), 0, 0);
+        grid.add(new Label("URL do Ollama"), 0, 0);
         grid.add(urlField, 1, 0);
-        grid.add(new Label("Model"), 0, 1);
+        grid.add(new Label("Modelo"), 0, 1);
         grid.add(modelBox, 1, 1);
-        grid.add(new Label("TTS Engine"), 0, 2);
+        grid.add(new Label("Motor TTS"), 0, 2);
         grid.add(ttsBox, 1, 2);
         grid.add(speakResponsesBox, 0, 3);
         grid.add(speakThinkingBox, 0, 4);

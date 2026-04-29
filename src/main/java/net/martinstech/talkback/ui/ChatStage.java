@@ -21,7 +21,7 @@ public class ChatStage {
         stage.initStyle(StageStyle.UNDECORATED);
         stage.setWidth(380);
         stage.setHeight(600);
-        stage.setTitle("TalkBack Reviewer");
+        stage.setTitle("TalkBack Assistente");
         positionNearTray();
 
         webView = new WebView();
