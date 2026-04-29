@@ -150,7 +150,7 @@ public class TalkBackApp extends Application {
         } catch (Exception e) {
             Platform.runLater(() -> {
                 injectScript("window.setTyping(false);");
-                injectScript("window.appendMessage('assistant', `**Error:** " + escapeJs(e.getMessage()) + "`);");
+                injectScript("window.appendMessage('assistant', `**Erro:** " + escapeJs(e.getMessage()) + "`);");
             });
         }
     }
@@ -183,7 +183,7 @@ public class TalkBackApp extends Application {
             }),
             error -> Platform.runLater(() -> {
                 injectScript("window.setTyping(false);");
-                injectScript("window.appendMessage('assistant', `**Error:** " + escapeJs(error.getMessage()) + "`);");
+                injectScript("window.appendMessage('assistant', `**Erro:** " + escapeJs(error.getMessage()) + "`);");
             }),
             () -> Platform.runLater(() -> {
                 injectScript("window.setTyping(false);");
@@ -238,7 +238,7 @@ public class TalkBackApp extends Application {
             }),
             error -> Platform.runLater(() -> {
                 injectScript("window.setTyping(false);");
-                injectScript("window.appendMessage('assistant', `**Error:** " + escapeJs(error.getMessage()) + "`);");
+                injectScript("window.appendMessage('assistant', `**Erro:** " + escapeJs(error.getMessage()) + "`);");
             }),
             () -> Platform.runLater(() -> {
                 injectScript("window.setTyping(false);");

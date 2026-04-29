@@ -21,7 +21,7 @@
 <body>
   <div class="chat-container">
     <div class="chat-header">
-      <h1>TalkBack Reviewer</h1>
+      <h1>TalkBack Assistente</h1>
       <div class="header-controls">
         <button id="minimize-btn" class="icon-btn" title="Minimizar">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -408,7 +408,7 @@
         header.className = 'code-block-header';
 
         const lang = block.className.replace('language-', '') || 'code';
-        header.innerHTML = `<span class="code-lang">${escapeHtml(lang)}</span><button class="copy-btn" onclick="copyCode(this)">Copy</button>`;
+        header.innerHTML = `<span class="code-lang">${escapeHtml(lang)}</span><button class="copy-btn" onclick="copyCode(this)">Copiar</button>`;
         wrapper.insertBefore(header, pre);
       });
     }
