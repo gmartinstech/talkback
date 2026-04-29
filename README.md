@@ -1,15 +1,17 @@
 # TalkBack
 
-A Claude Code hook that speaks responses and narrates the thinking process using text-to-speech.
+A desktop companion for AI-assisted development. TalkBack combines a floating chat widget, PR review assistant, agent skills manager, and text-to-speech narrator into one seamless tool.
 
-**Cross-platform:** Works on Windows and WSL (audio plays through Windows speakers).
+**Cross-platform:** Works on Windows and WSL.
 
 ## Features
 
-- **Speak Responses**: Hear Claude's final responses read aloud
-- **Thinking Narration**: Hear what Claude is doing as it works (tool announcements)
-- **High-Quality TTS**: Kokoro neural voices (WSL), Edge TTS (Windows), SAPI fallback
-- **Cross-Platform**: Works on Windows native and WSL distros
+- **PR Review Assistant**: Paste a GitHub PR link for a detailed, file-by-file walkthrough with local Ollama LLMs
+- **AI Chat**: General-purpose chat with web search support via DuckDuckGo and Ollama tool calling
+- **Agent Skills Manager**: Discover, install, and manage agent skills (`npx skills`) directly from the chat UI
+- **Text-to-Speech**: Hear Claude's responses and thinking narrated aloud
+- **System Tray + Global Hotkey**: `Ctrl+Shift+T` toggles the chat from anywhere
+- **Maritime Dark Theme**: A refined navy-and-gold interface designed for long coding sessions
 
 ## TTS Engines
 

@@ -25,8 +25,10 @@ public class WebBridge {
     private final Function<String, Boolean> onSkillsRemove;
     private final Supplier<Boolean> onSkillsUpdate;
     private final Function<String, String> onSkillsDetails;
+    private final Consumer<String> onSpeakText;
 
     public WebBridge(Consumer<String> onMessage,
+                     Consumer<String> onSpeakText,
                      Consumer<String> onOpenFile,
                      Runnable onShowSettings,
                      Consumer<String> onModelChanged,
@@ -50,6 +52,13 @@ public class WebBridge {
         this.onSkillsRemove = onSkillsRemove;
         this.onSkillsUpdate = onSkillsUpdate;
         this.onSkillsDetails = onSkillsDetails;
+        this.onSpeakText = onSpeakText;
+    }
+
+    public void speakText(String text) {
+        if (text != null && !text.isBlank()) {
+            Platform.runLater(() -> onSpeakText.accept(text));
+        }
     }
 
     public void send(String text) {

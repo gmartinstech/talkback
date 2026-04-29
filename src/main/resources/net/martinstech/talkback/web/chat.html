@@ -9,6 +9,14 @@
     @import url('https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&amp;display=swap');
   </style>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    if (typeof marked !== 'undefined') {
+      marked.use({ gfm: true, breaks: true, headerIds: false, mangle: false });
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 </head>
 <body>
   <div class="chat-container">
@@ -111,12 +119,27 @@
     const typingEl = document.getElementById('typing');
     const modelSelect = document.getElementById('model-select');
 
-    function appendMessage(role, html) {
+    function scrollToBottom() {
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function appendMessage(role, text) {
       const div = document.createElement('div');
       div.className = 'message ' + role;
-      div.innerHTML = html;
+      if (role === 'assistant') {
+        div.dataset.raw = text || '';
+        div.innerHTML = renderMarkdown(text || '');
+        addCopyButtons(div);
+        makeLinksExternal(div);
+        addSpeakButton(div);
+        if (typeof hljs !== 'undefined') {
+          div.querySelectorAll('pre code').forEach(hljs.highlightElement);
+        }
+      } else {
+        div.innerHTML = linkify(escapeHtml(text || ''));
+      }
       messagesEl.appendChild(div);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
+      scrollToBottom();
       return div;
     }
 
@@ -141,20 +164,32 @@
     }
 
     // Expose to Java bridge
-    function appendAssistantChunk(html) {
+    function appendAssistantChunk(text) {
       const last = messagesEl.lastElementChild;
       if (last && last.classList.contains('assistant')) {
-        last.innerHTML += html;
+        const raw = (last.dataset.raw || '') + text;
+        last.dataset.raw = raw;
+        last.innerHTML = renderMarkdown(raw);
+        addCopyButtons(last);
+        makeLinksExternal(last);
+        addSpeakButton(last);
+        if (typeof hljs !== 'undefined') {
+          last.querySelectorAll('pre code').forEach(hljs.highlightElement);
+        }
       } else {
-        appendMessage('assistant', html);
+        appendMessage('assistant', text);
       }
-      messagesEl.scrollTop = messagesEl.scrollHeight;
+      scrollToBottom();
     }
 
     function finalizeAssistantMessage() {
       const last = messagesEl.lastElementChild;
       if (last && last.classList.contains('assistant')) {
         last.classList.remove('streaming');
+        addSpeakButton(last);
+        if (typeof hljs !== 'undefined') {
+          last.querySelectorAll('pre code').forEach(hljs.highlightElement);
+        }
       }
     }
 
@@ -346,6 +381,71 @@
     function escapeJs(str) {
       if (str == null) return '';
       return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+    }
+
+    function renderMarkdown(text) {
+      if (typeof marked === 'undefined') {
+        return escapeHtml(text).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g, '<em>$1</em>')
+          .replace(/`(.+?)`/g, '<code>$1</code>');
+      }
+      return marked.parse(text);
+    }
+
+    function addCopyButtons(container) {
+      container.querySelectorAll('pre code').forEach(block => {
+        if (block.closest('.code-block-wrapper')) return;
+        const pre = block.parentElement;
+        const wrapper = document.createElement('div');
+        wrapper.className = 'code-block-wrapper';
+        pre.parentNode.insertBefore(wrapper, pre);
+        wrapper.appendChild(pre);
+
+        const header = document.createElement('div');
+        header.className = 'code-block-header';
+
+        const lang = block.className.replace('language-', '') || 'code';
+        header.innerHTML = `<span class="code-lang">${escapeHtml(lang)}</span><button class="copy-btn" onclick="copyCode(this)">Copy</button>`;
+        wrapper.insertBefore(header, pre);
+      });
+    }
+
+    function copyCode(btn) {
+      const code = btn.closest('.code-block-wrapper').querySelector('code').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 1500);
+      });
+    }
+
+    function addSpeakButton(container) {
+      if (container.querySelector('.speak-btn')) return;
+      const btn = document.createElement('button');
+      btn.className = 'speak-btn';
+      btn.title = 'Read aloud';
+      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>';
+      btn.onclick = () => {
+        const raw = container.dataset.raw || '';
+        if (!raw) return;
+        if (window.talkback && window.talkback.speakText) {
+          btn.classList.add('speaking');
+          window.talkback.speakText(raw);
+          setTimeout(() => btn.classList.remove('speaking'), 3000);
+        }
+      };
+      container.appendChild(btn);
+    }
+
+    function makeLinksExternal(container) {
+      container.querySelectorAll('a').forEach(a => {
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+      });
+    }
+
+    function linkify(text) {
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
     }
 
     window.openSkillsPanel = openSkillsPanel;

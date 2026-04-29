@@ -82,6 +82,7 @@ public class TalkBackApp extends Application {
 
         var bridge = new WebBridge(
             this::onMessage,
+            this::onSpeakText,
             this::onOpenFile,
             this::openSettings,
             this::onModelChanged,
@@ -306,6 +307,16 @@ public class TalkBackApp extends Application {
 
     private void onModelChanged(String model) {
         config.setOllamaModel(model);
+    }
+
+    private void onSpeakText(String text) {
+        executor.submit(() -> {
+            try {
+                tts.speak(text);
+            } catch (Exception e) {
+                System.err.println("TTS failed: " + e.getMessage());
+            }
+        });
     }
 
     private boolean handleSkillsCommand(String text) {
