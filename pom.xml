@@ -71,6 +71,9 @@
           <mainClass>net.martinstech.talkback.TalkBackApp</mainClass>
           <options>
             <option>--enable-preview</option>
+            <option>--enable-native-access=javafx.graphics</option>
+            <option>--enable-native-access=javafx.web</option>
+            <option>--enable-native-access=ALL-UNNAMED</option>
             <option>-XX:+UseCompactObjectHeaders</option>
           </options>
         </configuration>
@@ -80,7 +83,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.5.2</version>
         <configuration>
-          <argLine>--enable-preview</argLine>
+          <argLine>--enable-preview --enable-native-access=javafx.graphics --enable-native-access=javafx.web --enable-native-access=ALL-UNNAMED</argLine>
         </configuration>
       </plugin>
     </plugins>

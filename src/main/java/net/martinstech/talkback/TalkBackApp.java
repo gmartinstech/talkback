@@ -45,6 +45,8 @@ public class TalkBackApp extends Application {
     private TtsService tts;
     private ChatStage chat;
     private CodeViewerStage codeViewer;
+    private final List<String> pendingScripts = new ArrayList<>();
+    private volatile boolean pageLoaded = false;
     private final List<ChatMessage> history = new ArrayList<>();
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
@@ -60,13 +62,21 @@ public class TalkBackApp extends Application {
         chat = new ChatStage();
         codeViewer = new CodeViewerStage();
 
+        var engine = chat.getWebView().getEngine();
+        engine.getLoadWorker().stateProperty().addListener((obs, old, newState) -> {
+            if (newState == javafx.concurrent.Worker.State.SUCCEEDED) {
+                pageLoaded = true;
+                flushPendingScripts();
+            }
+        });
+
         var bridge = new WebBridge(
             this::onMessage,
             this::onOpenFile,
             this::openSettings,
             this::onModelChanged
         );
-        bridge.install(chat.getWebView().getEngine());
+        bridge.install(engine);
 
         var tray = new SystemTrayManager(() -> Platform.runLater(chat::toggle));
         tray.install();
@@ -78,6 +88,7 @@ public class TalkBackApp extends Application {
             System.err.println("Global hotkey unavailable: " + e.getMessage());
         }
 
+        chat.show();
         executor.submit(this::loadModels);
     }
 
@@ -165,39 +176,44 @@ public class TalkBackApp extends Application {
     }
 
     private void onOpenFile(String filePath) {
-        Platform.runLater(() -> {
+        executor.submit(() -> {
             try {
                 var prInfo = github.parsePrUrl(filePath);
+                String diff;
                 if (prInfo.isPresent()) {
-                    var diff = github.fetchPrDiff(prInfo.get().owner(), prInfo.get().repo(), prInfo.get().number());
-                    codeViewer.showDiff(diff);
+                    diff = github.fetchPrDiff(prInfo.get().owner(), prInfo.get().repo(), prInfo.get().number());
                 } else {
-                    codeViewer.showDiff("File: " + filePath + "\nNo diff available.");
+                    diff = "File: " + filePath + "\nNo diff available.";
                 }
+                String finalDiff = diff;
+                Platform.runLater(() -> codeViewer.showDiff(finalDiff));
             } catch (Exception e) {
-                codeViewer.showDiff("Error loading diff: " + e.getMessage());
+                Platform.runLater(() -> codeViewer.showDiff("Error loading diff: " + e.getMessage()));
             }
         });
     }
 
     private void openSettings() {
-        Platform.runLater(() -> {
+        executor.submit(() -> {
             List<String> models;
             try {
                 models = ollama.listModels();
             } catch (Exception e) {
                 models = List.of(config.ollamaModel());
             }
-            var dialog = new SettingsDialog(config, models);
-            var result = dialog.showAndWait();
-            result.ifPresent(newConfig -> {
-                config = newConfig;
-                try {
-                    config.save(CONFIG_PATH);
-                } catch (Exception e) {
-                    System.err.println("Failed to save config: " + e.getMessage());
-                }
-                ollama = new OllamaService(config.ollamaUrl());
+            final List<String> finalModels = models;
+            Platform.runLater(() -> {
+                var dialog = new SettingsDialog(config, finalModels);
+                var result = dialog.showAndWait();
+                result.ifPresent(newConfig -> {
+                    config = newConfig;
+                    try {
+                        config.save(CONFIG_PATH);
+                    } catch (Exception e) {
+                        System.err.println("Failed to save config: " + e.getMessage());
+                    }
+                    ollama = new OllamaService(config.ollamaUrl());
+                });
             });
         });
     }
@@ -208,8 +224,32 @@ public class TalkBackApp extends Application {
 
     private void injectScript(String script) {
         WebEngine engine = chat.getWebView().getEngine();
-        if (engine.getLoadWorker().getState() == javafx.concurrent.Worker.State.SUCCEEDED) {
-            engine.executeScript(script);
+        if (pageLoaded && engine.getLoadWorker().getState() == javafx.concurrent.Worker.State.SUCCEEDED) {
+            try {
+                engine.executeScript(script);
+            } catch (netscape.javascript.JSException e) {
+                System.err.println("JS injection failed: " + e.getMessage());
+            }
+        } else {
+            synchronized (pendingScripts) {
+                pendingScripts.add(script);
+            }
+        }
+    }
+
+    private void flushPendingScripts() {
+        WebEngine engine = chat.getWebView().getEngine();
+        List<String> scripts;
+        synchronized (pendingScripts) {
+            scripts = List.copyOf(pendingScripts);
+            pendingScripts.clear();
+        }
+        for (String script : scripts) {
+            try {
+                engine.executeScript(script);
+            } catch (netscape.javascript.JSException e) {
+                System.err.println("JS injection failed: " + e.getMessage());
+            }
         }
     }
 
