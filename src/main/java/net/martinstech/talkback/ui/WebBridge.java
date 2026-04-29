@@ -5,6 +5,8 @@ import javafx.scene.web.WebEngine;
 import netscape.javascript.JSObject;
 
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Bridge object exposed to the WebView JavaScript context as {@code window.talkback}.
@@ -17,19 +19,37 @@ public class WebBridge {
     private final Consumer<String> onModelChanged;
     private final Runnable onMinimize;
     private final Runnable onClose;
+    private final Function<String, String> onSkillsSearch;
+    private final Supplier<String> onSkillsList;
+    private final Function<String, Boolean> onSkillsAdd;
+    private final Function<String, Boolean> onSkillsRemove;
+    private final Supplier<Boolean> onSkillsUpdate;
+    private final Function<String, String> onSkillsDetails;
 
     public WebBridge(Consumer<String> onMessage,
                      Consumer<String> onOpenFile,
                      Runnable onShowSettings,
                      Consumer<String> onModelChanged,
                      Runnable onMinimize,
-                     Runnable onClose) {
+                     Runnable onClose,
+                     Function<String, String> onSkillsSearch,
+                     Supplier<String> onSkillsList,
+                     Function<String, Boolean> onSkillsAdd,
+                     Function<String, Boolean> onSkillsRemove,
+                     Supplier<Boolean> onSkillsUpdate,
+                     Function<String, String> onSkillsDetails) {
         this.onMessage = onMessage;
         this.onOpenFile = onOpenFile;
         this.onShowSettings = onShowSettings;
         this.onModelChanged = onModelChanged;
         this.onMinimize = onMinimize;
         this.onClose = onClose;
+        this.onSkillsSearch = onSkillsSearch;
+        this.onSkillsList = onSkillsList;
+        this.onSkillsAdd = onSkillsAdd;
+        this.onSkillsRemove = onSkillsRemove;
+        this.onSkillsUpdate = onSkillsUpdate;
+        this.onSkillsDetails = onSkillsDetails;
     }
 
     public void send(String text) {
@@ -54,6 +74,30 @@ public class WebBridge {
 
     public void close() {
         Platform.runLater(onClose);
+    }
+
+    public String skillsSearch(String query) {
+        return onSkillsSearch.apply(query);
+    }
+
+    public String skillsList() {
+        return onSkillsList.get();
+    }
+
+    public boolean skillsAdd(String packageSpec) {
+        return onSkillsAdd.apply(packageSpec);
+    }
+
+    public boolean skillsRemove(String skillName) {
+        return onSkillsRemove.apply(skillName);
+    }
+
+    public boolean skillsUpdate() {
+        return onSkillsUpdate.get();
+    }
+
+    public String skillsDetails(String skillPath) {
+        return onSkillsDetails.apply(skillPath);
     }
 
     /**

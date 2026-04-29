@@ -5,6 +5,7 @@ import net.martinstech.talkback.config.AppConfig;
 import net.martinstech.talkback.config.ConfigScope;
 import net.martinstech.talkback.service.GitHubService;
 import net.martinstech.talkback.service.OllamaService;
+import net.martinstech.talkback.service.SkillsService;
 import net.martinstech.talkback.service.TtsService;
 import net.martinstech.talkback.service.WebSearchService;
 import net.martinstech.talkback.ui.ChatStage;
@@ -17,6 +18,8 @@ import net.martinstech.talkback.ui.WebBridge;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -46,12 +49,14 @@ public class TalkBackApp extends Application {
     private GitHubService github;
     private TtsService tts;
     private WebSearchService webSearch;
+    private SkillsService skills;
     private ChatStage chat;
     private CodeViewerStage codeViewer;
     private final List<String> pendingScripts = new ArrayList<>();
     private volatile boolean pageLoaded = false;
     private final List<ChatMessage> history = new ArrayList<>();
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    private final ObjectMapper jsonMapper = new ObjectMapper();
 
     @Override
     public void start(Stage ignored) {
@@ -62,6 +67,7 @@ public class TalkBackApp extends Application {
         github = new GitHubService(REPOS_DIR);
         tts = new TtsService(Path.of(".").toAbsolutePath().getParent(), config.maxSpeakLength());
         webSearch = new WebSearchService();
+        skills = new SkillsService();
 
         chat = new ChatStage();
         codeViewer = new CodeViewerStage();
@@ -80,7 +86,13 @@ public class TalkBackApp extends Application {
             this::openSettings,
             this::onModelChanged,
             () -> chat.getStage().setIconified(true),
-            () -> Platform.exit()
+            () -> Platform.exit(),
+            this::onSkillsSearch,
+            this::onSkillsList,
+            this::onSkillsAdd,
+            this::onSkillsRemove,
+            this::onSkillsUpdate,
+            this::onSkillsDetails
         );
         bridge.install(engine);
 
@@ -102,6 +114,10 @@ public class TalkBackApp extends Application {
 
         injectScript("window.appendMessage('user', `" + escapeJs(text) + "`);");
         injectScript("window.setTyping(true);");
+
+        if (handleSkillsCommand(text)) {
+            return;
+        }
 
         var prInfo = github.parsePrUrl(text);
         if (prInfo.isPresent()) {
@@ -290,6 +306,286 @@ public class TalkBackApp extends Application {
 
     private void onModelChanged(String model) {
         config.setOllamaModel(model);
+    }
+
+    private boolean handleSkillsCommand(String text) {
+        String trimmed = text.trim();
+        if (!trimmed.startsWith("/skills")) {
+            return false;
+        }
+
+        String rest = trimmed.substring("/skills".length()).trim();
+        if (rest.isEmpty()) {
+            showSkillsHelp();
+            injectScript("window.setTyping(false);");
+            return true;
+        }
+
+        executor.submit(() -> {
+            String[] parts = rest.split("\\s+", 2);
+            String subcommand = parts[0].toLowerCase();
+            String argument = parts.length > 1 ? parts[1].trim() : "";
+
+            switch (subcommand) {
+                case "list" -> handleSkillsList();
+                case "search" -> handleSkillsSearch(argument);
+                case "add" -> handleSkillsAdd(argument);
+                case "remove" -> handleSkillsRemove(argument);
+                case "update" -> handleSkillsUpdate();
+                case "info" -> handleSkillsInfo(argument);
+                default -> Platform.runLater(() -> {
+                    injectSystemMessage("Unknown skills command: `" + subcommand + "`. Type `/skills` for help.");
+                    injectScript("window.setTyping(false);");
+                });
+            }
+        });
+
+        return true;
+    }
+
+    private void showSkillsHelp() {
+        String help = "**Skills Commands:**\n"
+            + "/skills list — list installed skills\n"
+            + "/skills search <query> — find skills\n"
+            + "/skills add <package> — install a skill\n"
+            + "/skills remove <skill> — remove a skill\n"
+            + "/skills update — update all skills\n"
+            + "/skills info <skill> — show skill details";
+        injectSystemMessage(help);
+    }
+
+    private void handleSkillsList() {
+        try {
+            var installed = skills.listInstalledSkills();
+            Platform.runLater(() -> {
+                if (installed.isEmpty()) {
+                    injectSystemMessage("**Installed Skills:**\n_No skills installed._");
+                } else {
+                    StringBuilder sb = new StringBuilder("**Installed Skills:**\n");
+                    for (int i = 0; i < installed.size(); i++) {
+                        var s = installed.get(i);
+                        sb.append(i + 1).append(". ").append(s.name());
+                        if (!s.description().isBlank()) {
+                            sb.append(" — ").append(s.description());
+                        }
+                        sb.append("\n");
+                    }
+                    injectSystemMessage(sb.toString().trim());
+                }
+                injectScript("window.setTyping(false);");
+            });
+        } catch (Exception e) {
+            Platform.runLater(() -> {
+                injectSystemMessage("**Error:** Failed to list skills — " + e.getMessage());
+                injectScript("window.setTyping(false);");
+            });
+        }
+    }
+
+    private void handleSkillsSearch(String query) {
+        if (query.isBlank()) {
+            Platform.runLater(() -> {
+                injectSystemMessage("**Error:** Please provide a search query. Usage: `/skills search <query>`");
+                injectScript("window.setTyping(false);");
+            });
+            return;
+        }
+        try {
+            var results = skills.findSkills(query);
+            Platform.runLater(() -> {
+                if (results.isEmpty()) {
+                    injectSystemMessage("**Search Results:**\n_No skills found for \"" + query + "\"._");
+                } else {
+                    StringBuilder sb = new StringBuilder("**Search Results for \"" + query + "\":**\n");
+                    for (int i = 0; i < results.size(); i++) {
+                        var s = results.get(i);
+                        sb.append(i + 1).append(". **").append(s.name()).append("**");
+                        if (s.installs() > 0) {
+                            sb.append(" (").append(String.format("%,d", s.installs())).append(" installs)");
+                        }
+                        if (s.installed()) {
+                            sb.append(" ✓ installed");
+                        }
+                        if (!s.source().isBlank()) {
+                            sb.append(" — `").append(s.source()).append("`");
+                        }
+                        sb.append("\n");
+                    }
+                    injectSystemMessage(sb.toString().trim());
+                }
+                injectScript("window.setTyping(false);");
+            });
+        } catch (Exception e) {
+            Platform.runLater(() -> {
+                injectSystemMessage("**Error:** Search failed — " + e.getMessage());
+                injectScript("window.setTyping(false);");
+            });
+        }
+    }
+
+    private void handleSkillsAdd(String packageSpec) {
+        if (packageSpec.isBlank()) {
+            Platform.runLater(() -> {
+                injectSystemMessage("**Error:** Please provide a package. Usage: `/skills add <package>`");
+                injectScript("window.setTyping(false);");
+            });
+            return;
+        }
+        boolean success = skills.addSkill(packageSpec);
+        Platform.runLater(() -> {
+            if (success) {
+                injectSystemMessage("**Success:** Skill `" + packageSpec + "` installed.");
+            } else {
+                injectSystemMessage("**Error:** Failed to install skill `" + packageSpec + "`.");
+            }
+            injectScript("window.setTyping(false);");
+        });
+    }
+
+    private void handleSkillsRemove(String skillName) {
+        if (skillName.isBlank()) {
+            Platform.runLater(() -> {
+                injectSystemMessage("**Error:** Please provide a skill name. Usage: `/skills remove <skill>`");
+                injectScript("window.setTyping(false);");
+            });
+            return;
+        }
+        boolean success = skills.removeSkill(skillName);
+        Platform.runLater(() -> {
+            if (success) {
+                injectSystemMessage("**Success:** Skill `" + skillName + "` removed.");
+            } else {
+                injectSystemMessage("**Error:** Failed to remove skill `" + skillName + "`.");
+            }
+            injectScript("window.setTyping(false);");
+        });
+    }
+
+    private void handleSkillsUpdate() {
+        try {
+            boolean success = skills.updateSkills().join();
+            Platform.runLater(() -> {
+                if (success) {
+                    injectSystemMessage("**Success:** All skills updated.");
+                } else {
+                    injectSystemMessage("**Error:** Skills update failed.");
+                }
+                injectScript("window.setTyping(false);");
+            });
+        } catch (Exception e) {
+            Platform.runLater(() -> {
+                injectSystemMessage("**Error:** Update failed — " + e.getMessage());
+                injectScript("window.setTyping(false);");
+            });
+        }
+    }
+
+    private void handleSkillsInfo(String skillPath) {
+        if (skillPath.isBlank()) {
+            Platform.runLater(() -> {
+                injectSystemMessage("**Error:** Please provide a skill name. Usage: `/skills info <skill>`");
+                injectScript("window.setTyping(false);");
+            });
+            return;
+        }
+        try {
+            var info = skills.getSkillDetails(skillPath);
+            Platform.runLater(() -> {
+                if (info == null) {
+                    injectSystemMessage("**Error:** Skill `" + skillPath + "` not found.");
+                } else {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("**").append(info.name()).append("**\n\n");
+                    if (!info.description().isBlank()) {
+                        sb.append(info.description()).append("\n\n");
+                    }
+                    if (!info.id().isBlank() && !info.id().equals(info.name())) {
+                        sb.append("**ID:** `").append(info.id()).append("`\n");
+                    }
+                    if (!info.source().isBlank()) {
+                        sb.append("**Source:** `").append(info.source()).append("`\n");
+                    }
+                    if (!info.content().isBlank()) {
+                        String[] lines = info.content().split("\n", 21);
+                        StringBuilder preview = new StringBuilder();
+                        int maxLines = Math.min(lines.length, 20);
+                        for (int i = 0; i < maxLines; i++) {
+                            if (i > 0) preview.append("\n");
+                            preview.append(lines[i]);
+                        }
+                        if (lines.length > 20) {
+                            preview.append("\n...");
+                        }
+                        String previewStr = preview.toString();
+                        if (previewStr.length() > 800) {
+                            previewStr = previewStr.substring(0, 800) + "...";
+                        }
+                        sb.append("\n**Preview:**\n```markdown\n").append(previewStr).append("\n```");
+                    }
+                    injectSystemMessage(sb.toString());
+                }
+                injectScript("window.setTyping(false);");
+            });
+        } catch (Exception e) {
+            Platform.runLater(() -> {
+                injectSystemMessage("**Error:** Failed to get skill info — " + e.getMessage());
+                injectScript("window.setTyping(false);");
+            });
+        }
+    }
+
+    private void injectSystemMessage(String text) {
+        injectScript("window.appendMessage('system', `" + escapeJs(text) + "`);");
+    }
+
+    private String onSkillsSearch(String query) {
+        try {
+            var results = skills.findSkills(query);
+            return jsonMapper.writeValueAsString(results);
+        } catch (Exception e) {
+            System.err.println("Skills search failed: " + e.getMessage());
+            return "[]";
+        }
+    }
+
+    private String onSkillsList() {
+        try {
+            var results = skills.listInstalledSkills();
+            return jsonMapper.writeValueAsString(results);
+        } catch (Exception e) {
+            System.err.println("Skills list failed: " + e.getMessage());
+            return "[]";
+        }
+    }
+
+    private boolean onSkillsAdd(String packageSpec) {
+        return skills.addSkill(packageSpec);
+    }
+
+    private boolean onSkillsRemove(String skillName) {
+        return skills.removeSkill(skillName);
+    }
+
+    private boolean onSkillsUpdate() {
+        try {
+            return skills.updateSkills().join();
+        } catch (Exception e) {
+            System.err.println("Skills update failed: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private String onSkillsDetails(String skillPath) {
+        try {
+            var details = skills.getSkillDetails(skillPath);
+            if (details == null) {
+                return "{}";
+            }
+            return jsonMapper.writeValueAsString(details);
+        } catch (Exception e) {
+            System.err.println("Skills details failed: " + e.getMessage());
+            return "{}";
+        }
     }
 
     private void injectScript(String script) {

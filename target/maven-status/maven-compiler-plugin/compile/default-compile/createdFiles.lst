@@ -1,9 +1,12 @@
 net\martinstech\talkback\ui\ChatStage.class
 net\martinstech\talkback\ui\WebBridge.class
+net\martinstech\talkback\service\SkillsService$SkillInfo.class
+net\martinstech\talkback\service\SkillsService.class
 net\martinstech\talkback\service\OllamaService$ToolCall.class
 net\martinstech\talkback\config\AppConfig.class
 net\martinstech\talkback\config\AppConfig$FrontendSettings.class
 net\martinstech\talkback\domain\ChatMessage.class
+net\martinstech\talkback\service\SkillsService$CacheEntry.class
 net\martinstech\talkback\service\WebSearchService$SearchResult.class
 net\martinstech\talkback\ui\HotkeyManager.class
 net\martinstech\talkback\ui\CodeViewerStage.class
@@ -19,5 +22,6 @@ net\martinstech\talkback\service\OllamaService$1.class
 net\martinstech\talkback\service\OllamaService$OllamaMessage.class
 net\martinstech\talkback\service\OllamaService.class
 net\martinstech\talkback\service\GitHubService$PrInfo.class
+net\martinstech\talkback\service\SkillsService$FrontMatter.class
 net\martinstech\talkback\service\GitHubService.class
 net\martinstech\talkback\ui\SettingsDialog.class
