@@ -85,28 +85,42 @@ public class WebSearchService {
 
     private List<SearchResult> parseResults(String html) {
         var results = new ArrayList<SearchResult>();
-        // DuckDuckGo HTML result structure:
-        // <div class="result results_links results_links_deep web-result">
-        //   <a class="result__a" href="URL">TITLE</a>
-        //   <a class="result__snippet">SNIPPET</a>
-        //   <a class="result__url" href="URL">DISPLAY URL</a>
-        // </div>
 
-        Pattern titlePat = Pattern.compile("<a[^>]*class=\"result__a\"[^>]*href=\"([^\"]+)\"[^>]*>([^<]+)</a>");
-        Pattern snippetPat = Pattern.compile("<a[^>]*class=\"result__snippet\"[^>]*>([^<]+)</a>");
+        // Extract result blocks using a simpler pattern
+        // Each result has: result__a (title+url), result__snippet (snippet)
+        Pattern resultPat = Pattern.compile(
+            "<a rel=\"nofollow\" class=\"result__a\" href=\"//duckduckgo.com/l/\\?uddg=([^\"&]+)[^\"]*\">([^<]+)</a>"
+        );
+        Pattern snippetPat = Pattern.compile(
+            "<a class=\"result__snippet\"[^\u003e]*>([^<]+)</a>"
+        );
 
-        Matcher titleMatcher = titlePat.matcher(html);
+        Matcher titleMatcher = resultPat.matcher(html);
         Matcher snippetMatcher = snippetPat.matcher(html);
 
-        while (titleMatcher.find() && snippetMatcher.find()) {
-            String url = titleMatcher.group(1);
+        while (titleMatcher.find()) {
+            String encodedUrl = titleMatcher.group(1);
             String title = cleanHtml(titleMatcher.group(2));
-            String snippet = cleanHtml(snippetMatcher.group(1));
+            String url = decodeUrl(encodedUrl);
+
+            String snippet = "";
+            if (snippetMatcher.find()) {
+                snippet = cleanHtml(snippetMatcher.group(1));
+            }
+
             results.add(new SearchResult(title, snippet, url));
             if (results.size() >= 5) break;
         }
 
         return results;
+    }
+
+    private String decodeUrl(String encoded) {
+        try {
+            return java.net.URLDecoder.decode(encoded, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return encoded;
+        }
     }
 
     private String cleanHtml(String raw) {
