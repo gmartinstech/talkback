@@ -227,51 +227,51 @@
     function searchSkills(query) {
       const resultsEl = document.getElementById('skills-search-results');
       if (!query || !query.trim()) {
-        resultsEl.innerHTML = '<div class="skill-card"><div class="skill-description">Type a query and press Search to find skills.</div></div>';
+        resultsEl.innerHTML = '<div class="skill-card"><div class="skill-description">Digite um termo e pressione Buscar para encontrar habilidades.</div></div>';
         return;
       }
-      resultsEl.innerHTML = '<div class="skill-card"><div class="skill-description">Searching...</div></div>';
+      resultsEl.innerHTML = '<div class="skill-card"><div class="skill-description">Buscando...</div></div>';
       try {
         if (window.talkback && window.talkback.skillsSearch) {
           const raw = window.talkback.skillsSearch(query.trim());
           const results = JSON.parse(raw || '[]');
           renderSkills(results, resultsEl);
         } else {
-          resultsEl.innerHTML = '<div class="skill-card"><div class="skill-description">Skills search is not available.</div></div>';
+          resultsEl.innerHTML = '<div class="skill-card"><div class="skill-description">Busca de habilidades não disponível.</div></div>';
         }
       } catch (e) {
-        resultsEl.innerHTML = '<div class="skill-card"><div class="skill-description">Error searching skills.</div></div>';
+        resultsEl.innerHTML = '<div class="skill-card"><div class="skill-description">Erro ao buscar habilidades.</div></div>';
       }
     }
 
     function listInstalledSkills() {
       const listEl = document.getElementById('skills-installed-list');
-      listEl.innerHTML = '<div class="skill-card"><div class="skill-description">Loading installed skills...</div></div>';
+      listEl.innerHTML = '<div class="skill-card"><div class="skill-description">Carregando habilidades instaladas...</div></div>';
       try {
         if (window.talkback && window.talkback.skillsList) {
           const raw = window.talkback.skillsList();
           const skills = JSON.parse(raw || '[]');
           renderSkills(skills, listEl, true);
         } else {
-          listEl.innerHTML = '<div class="skill-card"><div class="skill-description">Skills list is not available.</div></div>';
+          listEl.innerHTML = '<div class="skill-card"><div class="skill-description">Lista de habilidades não disponível.</div></div>';
         }
       } catch (e) {
-        listEl.innerHTML = '<div class="skill-card"><div class="skill-description">Error loading skills.</div></div>';
+        listEl.innerHTML = '<div class="skill-card"><div class="skill-description">Erro ao carregar habilidades.</div></div>';
       }
     }
 
     function renderSkills(skills, container, isInstalledView) {
       if (!skills || skills.length === 0) {
-        container.innerHTML = '<div class="skill-card"><div class="skill-description">No skills found.</div></div>';
+        container.innerHTML = '<div class="skill-card"><div class="skill-description">Nenhuma habilidade encontrada.</div></div>';
         return;
       }
       container.innerHTML = '';
       skills.forEach(skill => {
         const card = document.createElement('div');
         card.className = 'skill-card';
-        const name = skill.name || skill.id || 'Unknown';
+        const name = skill.name || skill.id || 'Desconhecida';
         const desc = skill.description || '';
-        const installs = skill.installs != null ? skill.installs.toLocaleString() + ' installs' : '';
+        const installs = skill.installs != null ? skill.installs.toLocaleString() + ' instalações' : '';
         const installed = !!skill.installed;
         const source = skill.source || '';
         const id = skill.id || (source ? source + '/' + name : name);
@@ -325,7 +325,7 @@
     function updateSkills() {
       const btn = document.querySelector('.skills-update-btn');
       const original = btn.innerHTML;
-      btn.innerHTML = '<span>Updating...</span>';
+      btn.innerHTML = '<span>Atualizando...</span>';
       try {
         if (window.talkback && window.talkback.skillsUpdate) {
           window.talkback.skillsUpdate();
@@ -342,8 +342,8 @@
       const overlay = document.getElementById('skill-modal-overlay');
       const body = document.getElementById('skill-modal-body');
       const title = document.getElementById('skill-modal-title');
-      title.textContent = 'Skill Details';
-      body.innerHTML = '<div>Loading...</div>';
+      title.textContent = 'Detalhes da Habilidade';
+      body.innerHTML = '<div>Carregando...</div>';
       modal.classList.add('active');
       overlay.classList.add('active');
       try {
@@ -353,10 +353,10 @@
           title.textContent = details.name || skillPath;
           body.innerHTML = formatDetails(details);
         } else {
-          body.innerHTML = '<div>Skill details not available.</div>';
+          body.innerHTML = '<div>Detalhes da habilidade não disponíveis.</div>';
         }
       } catch (e) {
-        body.innerHTML = '<div>Error loading details.</div>';
+        body.innerHTML = '<div>Erro ao carregar detalhes.</div>';
       }
       if (window.lucide) lucide.createIcons();
     }
@@ -416,8 +416,8 @@
     function copyCode(btn) {
       const code = btn.closest('.code-block-wrapper').querySelector('code').textContent;
       navigator.clipboard.writeText(code).then(() => {
-        btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = 'Copy', 1500);
+        btn.textContent = 'Copiado!';
+        setTimeout(() => btn.textContent = 'Copiar', 1500);
       });
     }
 
@@ -425,7 +425,7 @@
       if (container.querySelector('.speak-btn')) return;
       const btn = document.createElement('button');
       btn.className = 'speak-btn';
-      btn.title = 'Read aloud';
+      btn.title = 'Ler em voz alta';
       btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>';
       btn.onclick = () => {
         const raw = container.dataset.raw || '';
