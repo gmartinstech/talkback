@@ -91,16 +91,6 @@ public class TalkBackApp extends Application {
         }
 
         chat.show();
-        executor.submit(this::loadModels);
-    }
-
-    private void loadModels() {
-        try {
-            List<String> models = ollama.listModels();
-            Platform.runLater(() -> injectScript("window.setModels(" + toJsArray(models) + ")"));
-        } catch (Exception e) {
-            System.err.println("Could not load models: " + e.getMessage());
-        }
     }
 
     private void onMessage(String text) {

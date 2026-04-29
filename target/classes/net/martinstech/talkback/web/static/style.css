@@ -22,7 +22,7 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  font-family: 'DM Sans', 'Segoe UI', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
   font-size: 14px;
   background: var(--slate-950);
   color: var(--slate-100);

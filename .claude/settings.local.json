@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git worktree *)",
+      "Bash(python -m pytest tests/test_ollama.py -v)",
+      "Bash(py --version)",
+      "Bash(py -m pytest tests/test_ollama.py -v)",
+      "Bash(py *)",
+      "Bash(QT_QPA_PLATFORM=minimal py -m pytest tests/test_chat_window.py -v -s)",
+      "Bash(cmd.exe /c \"py -m pytest tests/test_chat_window.py -v\")",
+      "Bash(export QTWEBENGINE_CHROMIUM_FLAGS=\"--disable-gpu --disable-software-rasterizer --no-sandbox --single-process --disable-dev-shm-usage\")",
+      "Bash(export QTWEBENGINE_CHROMIUM_FLAGS=\"--disable-gpu --no-sandbox --single-process\")",
+      "Bash(export QT_OPENGL=software)",
+      "Bash(git *)",
+      "Bash(python -m pytest tests/test_integration.py -v)",
+      "Bash(xargs ls *)",
+      "Bash(sort -t/ -k9,9)",
+      "Bash(grep -E '^\\\\s+[3-9]|^\\\\s+[0-9]{2,}')"
+    ]
+  }
+}

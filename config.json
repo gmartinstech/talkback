@@ -6,7 +6,7 @@
   "maxSpeakLength" : 500,
   "ollamaUrl" : "http://localhost:11434",
   "ollamaModel" : "kimi-k2.6:cloud",
-  "ttsEngine" : "qwen",
+  "ttsEngine" : "edge",
   "frontend" : {
     "hotkey" : "Ctrl+Shift+T",
     "windowWidth" : 380,
