@@ -1,0 +1,15 @@
+C:\Users\gmartinssi\talkback\.worktrees\java25-migration\src\main\java\net\martinstech\talkback\async\ReviewScope.java
+C:\Users\gmartinssi\talkback\.worktrees\java25-migration\src\main\java\net\martinstech\talkback\config\AppConfig.java
+C:\Users\gmartinssi\talkback\.worktrees\java25-migration\src\main\java\net\martinstech\talkback\config\ConfigScope.java
+C:\Users\gmartinssi\talkback\.worktrees\java25-migration\src\main\java\net\martinstech\talkback\domain\ChatMessage.java
+C:\Users\gmartinssi\talkback\.worktrees\java25-migration\src\main\java\net\martinstech\talkback\domain\PullRequest.java
+C:\Users\gmartinssi\talkback\.worktrees\java25-migration\src\main\java\net\martinstech\talkback\service\GitHubService.java
+C:\Users\gmartinssi\talkback\.worktrees\java25-migration\src\main\java\net\martinstech\talkback\service\OllamaService.java
+C:\Users\gmartinssi\talkback\.worktrees\java25-migration\src\main\java\net\martinstech\talkback\service\TtsService.java
+C:\Users\gmartinssi\talkback\.worktrees\java25-migration\src\main\java\net\martinstech\talkback\TalkBackApp.java
+C:\Users\gmartinssi\talkback\.worktrees\java25-migration\src\main\java\net\martinstech\talkback\ui\ChatStage.java
+C:\Users\gmartinssi\talkback\.worktrees\java25-migration\src\main\java\net\martinstech\talkback\ui\CodeViewerStage.java
+C:\Users\gmartinssi\talkback\.worktrees\java25-migration\src\main\java\net\martinstech\talkback\ui\HotkeyManager.java
+C:\Users\gmartinssi\talkback\.worktrees\java25-migration\src\main\java\net\martinstech\talkback\ui\SettingsDialog.java
+C:\Users\gmartinssi\talkback\.worktrees\java25-migration\src\main\java\net\martinstech\talkback\ui\SystemTrayManager.java
+C:\Users\gmartinssi\talkback\.worktrees\java25-migration\src\main\java\net\martinstech\talkback\ui\WebBridge.java
