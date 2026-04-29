@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: net.martinstech.talkback.service.SkillsServiceIntegrationTest
 -------------------------------------------------------------------------------
-Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 13.39 s -- in net.martinstech.talkback.service.SkillsServiceIntegrationTest
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 14.03 s -- in net.martinstech.talkback.service.SkillsServiceIntegrationTest

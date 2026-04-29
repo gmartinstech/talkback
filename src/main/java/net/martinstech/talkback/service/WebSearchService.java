@@ -1,12 +1,10 @@
 package net.martinstech.talkback.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -16,15 +14,17 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Searches the web via DuckDuckGo HTML and returns structured results.
+ * Searches the web via DuckDuckGo Lite HTML and returns structured results.
  * No API key required.
  */
 public class WebSearchService {
     private final HttpClient httpClient;
-    private final ObjectMapper mapper;
 
-    private static final Pattern RESULT_PATTERN = Pattern.compile(
-        "<a rel=\"nofollow\" href=\"(https?://[^\"]+)\"[^>]*>[^<]*</a>[^<]*<a[^>]*class=\"result__a\"[^>]*href=\"(https?://[^\"]+)\"[^>]*>([^<]+)</a>[^<]*<a[^>]*class=\"result__snippet\"[^>]*>([^<]+)</a>"
+    private static final Pattern LINK_PATTERN = Pattern.compile(
+        "<a rel=\"nofollow\" href=\"(https?://[^\"]+)\" class='result-link'>([^<]+)</a>"
+    );
+    private static final Pattern SNIPPET_PATTERN = Pattern.compile(
+        "<td class='result-snippet'>(.*?)</td>", Pattern.DOTALL
     );
 
     public WebSearchService() {
@@ -32,11 +32,10 @@ public class WebSearchService {
             .connectTimeout(Duration.ofSeconds(10))
             .followRedirects(HttpClient.Redirect.NORMAL)
             .build();
-        this.mapper = new ObjectMapper();
     }
 
     /**
-     * Searches DuckDuckGo for the given query and returns top results.
+     * Searches DuckDuckGo Lite for the given query and returns top results.
      *
      * @param query the search query
      * @return a list of {@link SearchResult} objects (title, snippet, url)
@@ -44,12 +43,13 @@ public class WebSearchService {
     public List<SearchResult> search(String query) {
         try {
             String encoded = URLEncoder.encode(query, StandardCharsets.UTF_8);
-            String url = "https://html.duckduckgo.com/html/?q=" + encoded;
+            String body = "q=" + encoded + "&kl=us-en";
 
             var request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.0")
-                .GET()
+                .uri(URI.create("https://lite.duckduckgo.com/lite/"))
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(BodyPublishers.ofString(body))
                 .timeout(Duration.ofSeconds(15))
                 .build();
 
@@ -86,26 +86,16 @@ public class WebSearchService {
     private List<SearchResult> parseResults(String html) {
         var results = new ArrayList<SearchResult>();
 
-        // Extract result blocks using a simpler pattern
-        // Each result has: result__a (title+url), result__snippet (snippet)
-        Pattern resultPat = Pattern.compile(
-            "<a rel=\"nofollow\" class=\"result__a\" href=\"//duckduckgo.com/l/\\?uddg=([^\"&]+)[^\"]*\">([^<]+)</a>"
-        );
-        Pattern snippetPat = Pattern.compile(
-            "<a class=\"result__snippet\"[^\u003e]*>([^<]+)</a>"
-        );
+        Matcher linkMatcher = LINK_PATTERN.matcher(html);
+        Matcher snippetMatcher = SNIPPET_PATTERN.matcher(html);
 
-        Matcher titleMatcher = resultPat.matcher(html);
-        Matcher snippetMatcher = snippetPat.matcher(html);
-
-        while (titleMatcher.find()) {
-            String encodedUrl = titleMatcher.group(1);
-            String title = cleanHtml(titleMatcher.group(2));
-            String url = decodeUrl(encodedUrl);
+        while (linkMatcher.find()) {
+            String url = linkMatcher.group(1);
+            String title = cleanHtml(linkMatcher.group(2));
 
             String snippet = "";
             if (snippetMatcher.find()) {
-                snippet = cleanHtml(snippetMatcher.group(1));
+                snippet = cleanHtml(stripHtmlTags(snippetMatcher.group(1)));
             }
 
             results.add(new SearchResult(title, snippet, url));
@@ -115,12 +105,8 @@ public class WebSearchService {
         return results;
     }
 
-    private String decodeUrl(String encoded) {
-        try {
-            return java.net.URLDecoder.decode(encoded, StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            return encoded;
-        }
+    private String stripHtmlTags(String raw) {
+        return raw.replaceAll("<[^>]+>", "").trim();
     }
 
     private String cleanHtml(String raw) {
