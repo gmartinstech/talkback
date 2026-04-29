@@ -466,12 +466,12 @@ public class TalkBackApp extends Application {
             });
             return;
         }
-        boolean success = skills.addSkill(packageSpec);
+        var result = skills.addSkill(packageSpec);
         Platform.runLater(() -> {
-            if (success) {
-                injectSystemMessage("**Sucesso:** Habilidade `" + packageSpec + "` instalada.");
+            if (result.success()) {
+                injectSystemMessage("**Sucesso:** Habilidade `" + packageSpec + "` instalada.\n\n**Saída:**\n```\n" + result.output() + "\n```");
             } else {
-                injectSystemMessage("**Erro:** Falha ao instalar habilidade `" + packageSpec + "`.");
+                injectSystemMessage("**Erro:** Falha ao instalar habilidade `" + packageSpec + "`.\n\n**Saída:**\n```\n" + result.output() + "\n```");
             }
             injectScript("window.setTyping(false);");
         });
@@ -485,12 +485,12 @@ public class TalkBackApp extends Application {
             });
             return;
         }
-        boolean success = skills.removeSkill(skillName);
+        var result = skills.removeSkill(skillName);
         Platform.runLater(() -> {
-            if (success) {
-                injectSystemMessage("**Sucesso:** Habilidade `" + skillName + "` removida.");
+            if (result.success()) {
+                injectSystemMessage("**Sucesso:** Habilidade `" + skillName + "` removida.\n\n**Saída:**\n```\n" + result.output() + "\n```");
             } else {
-                injectSystemMessage("**Erro:** Falha ao remover habilidade `" + skillName + "`.");
+                injectSystemMessage("**Erro:** Falha ao remover habilidade `" + skillName + "`.\n\n**Saída:**\n```\n" + result.output() + "\n```");
             }
             injectScript("window.setTyping(false);");
         });
@@ -498,12 +498,12 @@ public class TalkBackApp extends Application {
 
     private void handleSkillsUpdate() {
         try {
-            boolean success = skills.updateSkills().join();
+            var result = skills.updateSkills().join();
             Platform.runLater(() -> {
-                if (success) {
-                    injectSystemMessage("**Sucesso:** Todas as habilidades atualizadas.");
+                if (result.success()) {
+                    injectSystemMessage("**Sucesso:** Todas as habilidades atualizadas.\n\n**Saída:**\n```\n" + result.output() + "\n```");
                 } else {
-                    injectSystemMessage("**Erro:** Falha ao atualizar habilidades.");
+                    injectSystemMessage("**Erro:** Falha ao atualizar habilidades.\n\n**Saída:**\n```\n" + result.output() + "\n```");
                 }
                 injectScript("window.setTyping(false);");
             });
@@ -593,20 +593,20 @@ public class TalkBackApp extends Application {
         }
     }
 
-    private boolean onSkillsAdd(String packageSpec) {
+    private SkillsService.SkillResult onSkillsAdd(String packageSpec) {
         return skills.addSkill(packageSpec);
     }
 
-    private boolean onSkillsRemove(String skillName) {
+    private SkillsService.SkillResult onSkillsRemove(String skillName) {
         return skills.removeSkill(skillName);
     }
 
-    private boolean onSkillsUpdate() {
+    private SkillsService.SkillResult onSkillsUpdate() {
         try {
             return skills.updateSkills().join();
         } catch (Exception e) {
             System.err.println("Skills update failed: " + e.getMessage());
-            return false;
+            return new SkillsService.SkillResult(false, "Falha na atualização: " + e.getMessage());
         }
     }
 

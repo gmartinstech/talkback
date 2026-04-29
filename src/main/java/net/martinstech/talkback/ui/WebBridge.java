@@ -2,6 +2,7 @@ package net.martinstech.talkback.ui;
 
 import javafx.application.Platform;
 import javafx.scene.web.WebEngine;
+import net.martinstech.talkback.service.SkillsService;
 import netscape.javascript.JSObject;
 
 import java.util.function.Consumer;
@@ -21,9 +22,9 @@ public class WebBridge {
     private final Runnable onClose;
     private final Function<String, String> onSkillsSearch;
     private final Supplier<String> onSkillsList;
-    private final Function<String, Boolean> onSkillsAdd;
-    private final Function<String, Boolean> onSkillsRemove;
-    private final Supplier<Boolean> onSkillsUpdate;
+    private final Function<String, SkillsService.SkillResult> onSkillsAdd;
+    private final Function<String, SkillsService.SkillResult> onSkillsRemove;
+    private final Supplier<SkillsService.SkillResult> onSkillsUpdate;
     private final Function<String, String> onSkillsDetails;
     private final Consumer<String> onSpeakText;
 
@@ -36,9 +37,9 @@ public class WebBridge {
                      Runnable onClose,
                      Function<String, String> onSkillsSearch,
                      Supplier<String> onSkillsList,
-                     Function<String, Boolean> onSkillsAdd,
-                     Function<String, Boolean> onSkillsRemove,
-                     Supplier<Boolean> onSkillsUpdate,
+                     Function<String, net.martinstech.talkback.service.SkillsService.SkillResult> onSkillsAdd,
+                     Function<String, net.martinstech.talkback.service.SkillsService.SkillResult> onSkillsRemove,
+                     Supplier<net.martinstech.talkback.service.SkillsService.SkillResult> onSkillsUpdate,
                      Function<String, String> onSkillsDetails) {
         this.onMessage = onMessage;
         this.onOpenFile = onOpenFile;
@@ -94,15 +95,18 @@ public class WebBridge {
     }
 
     public boolean skillsAdd(String packageSpec) {
-        return onSkillsAdd.apply(packageSpec);
+        var result = onSkillsAdd.apply(packageSpec);
+        return result != null && result.success();
     }
 
     public boolean skillsRemove(String skillName) {
-        return onSkillsRemove.apply(skillName);
+        var result = onSkillsRemove.apply(skillName);
+        return result != null && result.success();
     }
 
     public boolean skillsUpdate() {
-        return onSkillsUpdate.get();
+        var result = onSkillsUpdate.get();
+        return result != null && result.success();
     }
 
     public String skillsDetails(String skillPath) {

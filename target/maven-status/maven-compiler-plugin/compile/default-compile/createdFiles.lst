@@ -14,6 +14,7 @@ net\martinstech\talkback\domain\PullRequest.class
 net\martinstech\talkback\service\WebSearchService.class
 net\martinstech\talkback\service\TtsService.class
 net\martinstech\talkback\config\ConfigScope.class
+net\martinstech\talkback\service\SkillsService$SkillResult.class
 net\martinstech\talkback\TalkBackApp.class
 net\martinstech\talkback\async\ReviewScope.class
 net\martinstech\talkback\service\OllamaService$ToolDefinition.class

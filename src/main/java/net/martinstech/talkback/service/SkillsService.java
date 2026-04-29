@@ -33,7 +33,7 @@ public class SkillsService {
     private static final String SKILLS_SEARCH_API = "https://skills.sh/api/search";
     private static final Duration HTTP_TIMEOUT = Duration.ofSeconds(15);
     private static final Duration CLI_TIMEOUT = Duration.ofSeconds(60);
-    private static final Duration INSTALLED_NAMES_TTL = Duration.ofSeconds(30);
+    private static final Duration INSTALLED_NAMES_TTL = Duration.ofMinutes(5);
     private static final Duration SEARCH_TTL = Duration.ofMinutes(5);
 
     private final HttpClient httpClient;
@@ -41,6 +41,7 @@ public class SkillsService {
     private final Path skillsDir;
     private final ConcurrentHashMap<String, CacheEntry<List<String>>> installedNamesCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, CacheEntry<List<SkillInfo>>> searchCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, CompletableFuture<List<SkillInfo>>> searchInFlight = new ConcurrentHashMap<>();
 
     public SkillsService() {
         this.httpClient = HttpClient.newBuilder()
@@ -62,11 +63,33 @@ public class SkillsService {
      * @return a list of {@link SkillInfo} representing found skills
      */
     public List<SkillInfo> findSkills(String query) {
+        // 1. Check cache first
         CacheEntry<List<SkillInfo>> cached = searchCache.get(query);
         if (cached != null && !isExpired(cached, SEARCH_TTL)) {
             return cached.value;
         }
 
+        // 2. Deduplicate concurrent requests for the same query
+        CompletableFuture<List<SkillInfo>> future = searchInFlight.computeIfAbsent(query, k -> CompletableFuture.supplyAsync(() -> {
+            try {
+                return doFindSkills(query);
+            } finally {
+                searchInFlight.remove(query);
+            }
+        }));
+
+        try {
+            return future.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return List.of();
+        } catch (ExecutionException e) {
+            System.err.println("Skill search failed: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()));
+            return List.of();
+        }
+    }
+
+    private List<SkillInfo> doFindSkills(String query) {
         try {
             CompletableFuture<HttpResponse<String>> responseFuture = CompletableFuture.supplyAsync(() -> {
                 try {
@@ -162,33 +185,33 @@ public class SkillsService {
      * Installs a skill package.
      *
      * @param packageSpec the package specifier (e.g. {@code "vercel-labs/agent-skills"})
-     * @return {@code true} if the command succeeded
+     * @return a {@link SkillResult} with success flag and CLI output
      */
-    public boolean addSkill(String packageSpec) {
+    public SkillResult addSkill(String packageSpec) {
         String output = runNpxSkills("add", packageSpec, "-y");
-        return output != null;
+        return new SkillResult(output != null, output != null ? output : "Falha na instalação (sem saída do CLI)");
     }
 
     /**
      * Removes an installed skill.
      *
      * @param skillName the skill name or ID
-     * @return {@code true} if the command succeeded
+     * @return a {@link SkillResult} with success flag and CLI output
      */
-    public boolean removeSkill(String skillName) {
+    public SkillResult removeSkill(String skillName) {
         String output = runNpxSkills("remove", skillName, "-y");
-        return output != null;
+        return new SkillResult(output != null, output != null ? output : "Falha na remoção (sem saída do CLI)");
     }
 
     /**
      * Updates all installed skills asynchronously.
      *
-     * @return a {@link CompletableFuture} that resolves to {@code true} if the command succeeded
+     * @return a {@link CompletableFuture} that resolves to a {@link SkillResult}
      */
-    public CompletableFuture<Boolean> updateSkills() {
+    public CompletableFuture<SkillResult> updateSkills() {
         return CompletableFuture.supplyAsync(() -> {
             String output = runNpxSkills("update", "-y");
-            return output != null;
+            return new SkillResult(output != null, output != null ? output : "Falha na atualização (sem saída do CLI)");
         });
     }
 
@@ -446,6 +469,11 @@ public class SkillsService {
     public record SkillInfo(String id, String name, String description,
                              String source, long installs, boolean installed,
                              String content) {}
+
+    /**
+     * Result of a skill CLI operation.
+     */
+    public record SkillResult(boolean success, String output) {}
 
     private static class CacheEntry<V> {
         final V value;
