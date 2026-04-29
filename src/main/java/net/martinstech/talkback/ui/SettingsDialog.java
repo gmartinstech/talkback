@@ -15,6 +15,8 @@ public class SettingsDialog extends Dialog<AppConfig> {
     private final TextField urlField;
     private final ComboBox<String> modelBox;
     private final ComboBox<String> ttsBox;
+    private final CheckBox speakResponsesBox;
+    private final CheckBox speakThinkingBox;
 
     public SettingsDialog(AppConfig current, List<String> models) {
         setTitle("TalkBack Settings");
@@ -40,29 +42,38 @@ public class SettingsDialog extends Dialog<AppConfig> {
         ttsBox.getItems().addAll("edge", "sapi", "kokoro", "qwen");
         ttsBox.setValue(current.ttsEngine());
 
+        speakResponsesBox = new CheckBox("Auto-read responses");
+        speakResponsesBox.setSelected(current.speakResponses());
+
+        speakThinkingBox = new CheckBox("Read thinking tokens");
+        speakThinkingBox.setSelected(current.speakThinking());
+
         grid.add(new Label("Ollama URL"), 0, 0);
         grid.add(urlField, 1, 0);
         grid.add(new Label("Model"), 0, 1);
         grid.add(modelBox, 1, 1);
         grid.add(new Label("TTS Engine"), 0, 2);
         grid.add(ttsBox, 1, 2);
+        grid.add(speakResponsesBox, 0, 3);
+        grid.add(speakThinkingBox, 0, 4);
 
         getDialogPane().setContent(grid);
         getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
         setResultConverter(btn -> {
             if (btn == ButtonType.OK) {
-                return new AppConfig(
+                var result = new AppConfig(
                     current.enabled(),
                     current.voice(),
-                    current.speakResponses(),
-                    current.speakThinking(),
+                    speakResponsesBox.isSelected(),
+                    speakThinkingBox.isSelected(),
                     current.maxSpeakLength(),
                     urlField.getText(),
                     modelBox.getValue(),
                     ttsBox.getValue(),
                     current.frontend()
                 );
+                return result;
             }
             return null;
         });

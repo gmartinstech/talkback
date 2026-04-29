@@ -74,7 +74,8 @@ public class TalkBackApp extends Application {
             this::onMessage,
             this::onOpenFile,
             this::openSettings,
-            this::onModelChanged
+            this::onModelChanged,
+            () -> chat.getStage().setIconified(true)
         );
         bridge.install(engine);
 
@@ -149,7 +150,7 @@ public class TalkBackApp extends Application {
             messages.add(new UserMessage(prompt));
         }
         // Ensure we have at least the current prompt in messages
-        if (messages.stream().noneMatch(m -> m instanceof UserMessage && m.text().equals(prompt))) {
+        if (messages.stream().noneMatch(m -> m instanceof UserMessage um && um.singleText().equals(prompt))) {
             messages.add(new UserMessage(prompt));
         }
 
@@ -170,6 +171,9 @@ public class TalkBackApp extends Application {
                 history.add(new AiMessage(sb.toString()));
                 if (history.size() > 20) {
                     history.removeFirst();
+                }
+                if (config.speakResponses()) {
+                    executor.submit(() -> tts.speak(sb.toString()));
                 }
             })
         );
@@ -227,7 +231,7 @@ public class TalkBackApp extends Application {
         if (pageLoaded && engine.getLoadWorker().getState() == javafx.concurrent.Worker.State.SUCCEEDED) {
             try {
                 engine.executeScript(script);
-            } catch (netscape.javascript.JSException e) {
+            } catch (RuntimeException e) {
                 System.err.println("JS injection failed: " + e.getMessage());
             }
         } else {
@@ -247,7 +251,7 @@ public class TalkBackApp extends Application {
         for (String script : scripts) {
             try {
                 engine.executeScript(script);
-            } catch (netscape.javascript.JSException e) {
+            } catch (RuntimeException e) {
                 System.err.println("JS injection failed: " + e.getMessage());
             }
         }

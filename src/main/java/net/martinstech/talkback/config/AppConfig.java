@@ -54,6 +54,8 @@ public final class AppConfig {
     public void setOllamaModel(String ollamaModel) { this.ollamaModel = Objects.requireNonNull(ollamaModel); }
     public void setTtsEngine(String ttsEngine) { this.ttsEngine = Objects.requireNonNull(ttsEngine); }
     public void setMaxSpeakLength(int maxSpeakLength) { this.maxSpeakLength = Math.max(1, maxSpeakLength); }
+    public void setSpeakResponses(boolean speakResponses) { this.speakResponses = speakResponses; }
+    public void setSpeakThinking(boolean speakThinking) { this.speakThinking = speakThinking; }
 
     /**
      * Loads configuration from the given JSON file path.

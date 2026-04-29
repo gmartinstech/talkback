@@ -1,46 +1,15 @@
 {
-  "enabled": true,
-  "tts_engine": "auto",
-
-  "voice": "en-US-AndrewMultilingualNeural",
-  "kokoro_voice": "af_bella",
-  "rate": "+10%",
-  "volume": "+0%",
-
-  "speak_responses": true,
-  "speak_thinking": false,
-  "speak_tool_results": false,
-
-  "tool_filters": [],
-  "tools_to_announce": ["Bash", "Write", "Edit"],
-
-  "batch_size": 1000,
-
-  "fallback_to_sapi": true,
-  "log_file": "~/.claude/talkback.log",
-
-  "frontend": {
-    "ollama_url": "http://localhost:11434",
-    "ollama_model": "gemma4:4b",
-    "hotkey": "Ctrl+Shift+T",
-    "window_width": 380,
-    "window_height": 600
-  },
-
-  "qwen": {
-    "model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
-    "speaker": "Ryan",
-    "language": "Auto",
-    "instruct": null,
-    "voice_clone": {
-      "enabled": false,
-      "ref_audio": null,
-      "ref_text": null
-    }
-  },
-
-  "streaming": {
-    "enabled": true,
-    "sentence_chunking": true
+  "enabled" : true,
+  "voice" : "en-US-AndrewMultilingualNeural",
+  "speakResponses" : true,
+  "speakThinking" : true,
+  "maxSpeakLength" : 500,
+  "ollamaUrl" : "http://localhost:11434",
+  "ollamaModel" : "kimi-k2.6:cloud",
+  "ttsEngine" : "qwen",
+  "frontend" : {
+    "hotkey" : "Ctrl+Shift+T",
+    "windowWidth" : 380,
+    "windowHeight" : 600
   }
 }

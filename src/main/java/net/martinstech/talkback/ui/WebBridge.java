@@ -9,20 +9,24 @@ import java.util.function.Consumer;
 /**
  * Bridge object exposed to the WebView JavaScript context as {@code window.talkback}.
  */
+@SuppressWarnings("removal")
 public class WebBridge {
     private final Consumer<String> onMessage;
     private final Consumer<String> onOpenFile;
     private final Runnable onShowSettings;
     private final Consumer<String> onModelChanged;
+    private final Runnable onMinimize;
 
     public WebBridge(Consumer<String> onMessage,
                      Consumer<String> onOpenFile,
                      Runnable onShowSettings,
-                     Consumer<String> onModelChanged) {
+                     Consumer<String> onModelChanged,
+                     Runnable onMinimize) {
         this.onMessage = onMessage;
         this.onOpenFile = onOpenFile;
         this.onShowSettings = onShowSettings;
         this.onModelChanged = onModelChanged;
+        this.onMinimize = onMinimize;
     }
 
     public void send(String text) {
@@ -39,6 +43,10 @@ public class WebBridge {
 
     public void modelChanged(String model) {
         Platform.runLater(() -> onModelChanged.accept(model));
+    }
+
+    public void minimize() {
+        Platform.runLater(onMinimize);
     }
 
     /**

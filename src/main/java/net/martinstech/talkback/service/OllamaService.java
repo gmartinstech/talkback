@@ -46,6 +46,10 @@ public class OllamaService {
             .build();
         try {
             var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                System.err.println("Ollama returned HTTP " + response.statusCode());
+                return List.of();
+            }
             JsonNode root = mapper.readTree(response.body());
             var models = new ArrayList<String>();
             if (root.has("models")) {
@@ -72,26 +76,30 @@ public class OllamaService {
      */
     public void chatStream(String model, List<ChatMessage> history,
                            Consumer<String> onChunk, Consumer<Throwable> onError, Runnable onComplete) {
-        var streamingModel = OllamaStreamingChatModel.builder()
-            .baseUrl(baseUrl)
-            .modelName(model)
-            .build();
+        try {
+            var streamingModel = OllamaStreamingChatModel.builder()
+                .baseUrl(baseUrl)
+                .modelName(model)
+                .build();
 
-        streamingModel.generate(history, new StreamingResponseHandler<AiMessage>() {
-            @Override
-            public void onNext(String token) {
-                onChunk.accept(token);
-            }
+            streamingModel.generate(history, new StreamingResponseHandler<AiMessage>() {
+                @Override
+                public void onNext(String token) {
+                    onChunk.accept(token);
+                }
 
-            @Override
-            public void onComplete(dev.langchain4j.model.output.Response<AiMessage> response) {
-                onComplete.run();
-            }
+                @Override
+                public void onComplete(dev.langchain4j.model.output.Response<AiMessage> response) {
+                    onComplete.run();
+                }
 
-            @Override
-            public void onError(Throwable error) {
-                onError.accept(error);
-            }
-        });
+                @Override
+                public void onError(Throwable error) {
+                    onError.accept(error);
+                }
+            });
+        } catch (Exception e) {
+            onError.accept(e);
+        }
     }
 }

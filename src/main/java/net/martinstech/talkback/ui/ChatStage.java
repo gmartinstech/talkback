@@ -23,7 +23,7 @@ public class ChatStage {
 
         webView = new WebView();
         var engine = webView.getEngine();
-        var url = getClass().getResource("/io/gmartinstech/talkback/web/chat.html");
+        var url = getClass().getResource("/net/martinstech/talkback/web/chat.html");
         if (url != null) {
             engine.load(url.toExternalForm());
         } else {

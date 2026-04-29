@@ -9,6 +9,7 @@ import asyncio
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -79,12 +80,29 @@ QWEN_VOICES = {
 }
 
 
+def _normalize_keys(config):
+    """Map camelCase keys written by the Java side to snake_case used by Python."""
+    mapping = {
+        "ttsEngine": "tts_engine",
+        "maxSpeakLength": "max_speak_length",
+        "speakResponses": "speak_responses",
+        "speakThinking": "speak_thinking",
+        "ollamaUrl": "ollama_url",
+        "ollamaModel": "ollama_model",
+    }
+    normalized = {}
+    for k, v in config.items():
+        normalized[mapping.get(k, k)] = v
+    return normalized
+
+
 def load_config():
     """Load configuration from config.json"""
     try:
         if CONFIG_PATH.exists():
             with open(CONFIG_PATH, 'r') as f:
                 config = json.load(f)
+                config = _normalize_keys(config)
                 return {**DEFAULT_CONFIG, **config}
     except Exception as e:
         log_error(f"Failed to load config: {e}")
@@ -214,15 +232,19 @@ def wsl_to_windows_path(linux_path):
 def run_powershell(command, timeout=60):
     """Run PowerShell command - works from both Windows and WSL"""
     try:
+        # Find the appropriate PowerShell executable
+        ps_exe = shutil.which('pwsh') or shutil.which('pwsh.exe') or shutil.which('powershell') or shutil.which('powershell.exe')
+        if not ps_exe:
+            log_error("PowerShell not found (tried pwsh, pwsh.exe, powershell, powershell.exe)")
+            return False
         if IS_WSL:
-            # Use powershell.exe from WSL
             result = subprocess.run(
-                ['powershell.exe', '-NoProfile', '-Command', command],
+                [ps_exe, '-NoProfile', '-Command', command],
                 capture_output=True, timeout=timeout
             )
         else:
             result = subprocess.run(
-                ['powershell', '-NoProfile', '-Command', command],
+                [ps_exe, '-NoProfile', '-Command', command],
                 capture_output=True, timeout=timeout
             )
         return result.returncode == 0
@@ -438,6 +460,7 @@ def get_qwen_model(config):
             model_name,
             device_map=device,
             dtype=dtype,
+            attn_implementation="sdpa",
         )
         return _qwen_model
     except Exception as e:
@@ -817,6 +840,11 @@ if __name__ == "__main__":
     else:
         text = "Hello! TalkBack TTS engine is working correctly."
 
-    print(f"Speaking: {text[:50]}...")
+    try:
+        print(f"Speaking: {text[:50]}...")
+    except UnicodeEncodeError:
+        # Windows console may use cp1252; fall back to safe ASCII
+        safe = text[:50].encode("ascii", "replace").decode("ascii")
+        print(f"Speaking: {safe}...")
     speak(text)
     print("Done!")
