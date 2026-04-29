@@ -49,7 +49,13 @@ public class SkillsService {
             .followRedirects(HttpClient.Redirect.NORMAL)
             .build();
         this.mapper = new ObjectMapper();
-        this.skillsDir = Path.of(System.getProperty("user.home"), ".agents", "skills");
+        // npx skills installs to ./.agents/skills by default (project-local)
+        Path cwdSkills = Path.of(".agents", "skills").toAbsolutePath().normalize();
+        if (Files.exists(cwdSkills)) {
+            this.skillsDir = cwdSkills;
+        } else {
+            this.skillsDir = Path.of(System.getProperty("user.home"), ".agents", "skills");
+        }
     }
 
     /* ------------------------------------------------------------------ */
@@ -237,8 +243,12 @@ public class SkillsService {
      * @return {@code true} if the CLI responds to {@code --version}
      */
     public boolean isNpxAvailable() {
+        String npx = resolveNpxPath();
+        if (npx == null) {
+            return false;
+        }
         try {
-            var pb = new ProcessBuilder("npx", "skills", "--version");
+            var pb = new ProcessBuilder(npx, "skills", "--version");
             pb.redirectErrorStream(true);
             Process p = pb.start();
             boolean finished = p.waitFor(15, TimeUnit.SECONDS);
@@ -299,8 +309,14 @@ public class SkillsService {
     /* ------------------------------------------------------------------ */
 
     private String runNpxSkills(String... args) {
+        String npx = resolveNpxPath();
+        if (npx == null) {
+            System.err.println("npx not found in PATH or common locations. Ensure Node.js is installed.");
+            return null;
+        }
+
         var command = new ArrayList<String>();
-        command.add("npx");
+        command.add(npx);
         command.add("skills");
         Collections.addAll(command, args);
 
@@ -341,6 +357,61 @@ public class SkillsService {
                 p.destroyForcibly();
             }
         }
+    }
+
+    private String resolveNpxPath() {
+        // 1. Try plain "npx" — works if it's in PATH
+        try {
+            var pb = new ProcessBuilder("where", "npx");
+            pb.redirectErrorStream(true);
+            Process p = pb.start();
+            boolean finished = p.waitFor(5, TimeUnit.SECONDS);
+            if (finished && p.exitValue() == 0) {
+                try (var reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+                    String best = null;
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        line = line.trim();
+                        if (line.isBlank()) continue;
+                        // On Windows, prefer .cmd over extensionless scripts
+                        if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                            if (line.toLowerCase().endsWith(".cmd")) {
+                                return line;
+                            }
+                            if (line.toLowerCase().endsWith(".exe") || line.toLowerCase().endsWith(".bat")) {
+                                best = line;
+                            } else if (best == null) {
+                                best = line;
+                            }
+                        } else {
+                            return line;
+                        }
+                    }
+                    if (best != null) {
+                        return best;
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        // 2. Search common locations
+        String userHome = System.getProperty("user.home");
+        String[] candidates = {
+            userHome + "\\AppData\\Roaming\\npm\\npx.cmd",
+            userHome + "\\AppData\\Roaming\\npm\\npx.ps1",
+            userHome + "\\AppData\\Roaming\\npm\\npx",
+            "C:\\Program Files\\nodejs\\npx.cmd",
+            "C:\\Program Files\\nodejs\\npx",
+            "C:\\Program Files (x86)\\nodejs\\npx.cmd",
+            "C:\\ProgramData\\nvm\\npx.cmd",
+        };
+        for (String candidate : candidates) {
+            if (Files.exists(Path.of(candidate))) {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 
     private List<String> listInstalledSkillNames() {

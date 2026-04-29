@@ -1,2 +1,3 @@
 net\martinstech\talkback\service\GitHubServiceTest.class
+net\martinstech\talkback\service\SkillsServiceIntegrationTest.class
 net\martinstech\talkback\config\AppConfigTest.class
