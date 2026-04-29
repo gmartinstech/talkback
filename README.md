@@ -90,24 +90,34 @@ python.exe speak.py "Hello, this is a test"
 
 ## PR Reviewer Frontend
 
-A floating chat widget for reviewing GitHub PRs with Ollama LLMs.
+A floating desktop chat widget for reviewing GitHub PRs with local Ollama LLMs.
+Runs on Java 25 with a JavaFX WebView UI and LangChain4j.
+
+### Requirements
+
+- JDK 25 or later
+- Maven 3.9+
+- [Ollama](https://ollama.com) running locally
+- `gh` CLI authenticated (`gh auth login`)
 
 ### Run
 
 ```bash
-python run-frontend.py
+# Windows (Command Prompt / PowerShell)
+.\run-frontend.bat
+
+# WSL / macOS / Linux
+bash run-frontend.sh
+
+# Or directly with Maven
+mvn javafx:run
 ```
 
 - System tray icon: click to show/hide chat
 - Hotkey: `Ctrl+Shift+T` toggles chat window
 - Paste a GitHub PR link to get a detailed walkthrough
 - Click referenced files to view syntax-highlighted diffs
-
-### Requirements
-
-```bash
-pip install PyQt6 PyQt6-WebEngine requests
-```
+- Settings gear lets you choose model and Ollama URL
 
 ## Uninstall
 
@@ -120,9 +130,21 @@ pip install PyQt6 PyQt6-WebEngine requests
 talkback/
 ├── config.json              # Configuration
 ├── speak.py                 # TTS engine (Kokoro, Edge, SAPI)
-├── hooks/
-│   ├── on_stop.py           # Speaks final responses
-│   └── on_tool_complete.py  # Narrates tool usage
+├── hooks/                   # Claude Code hooks (Python)
+│   ├── on_stop.py
+│   └── on_tool_complete.py
+├── pom.xml                  # Java 25 build
+├── src/
+│   └── main/java/io/gmartinstech/talkback/
+│       ├── TalkBackApp.java          # JavaFX entry point
+│       ├── config/                   # AppConfig, ScopedValue carrier
+│       ├── domain/                   # PullRequest, ChatMessage records
+│       ├── service/                  # Ollama, GitHub, TTS bridges
+│       ├── ui/                       # ChatStage, WebBridge, SystemTray
+│       └── async/                    # StructuredTaskScope review pipeline
+│   └── main/resources/               # Maritime dark theme HTML/CSS
+├── run-frontend.bat         # Windows launcher
+├── run-frontend.sh          # Unix launcher
 ├── install.ps1              # Windows installation
 ├── install-wsl.sh           # WSL installation
 ├── uninstall.ps1            # Windows removal
