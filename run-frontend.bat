@@ -1,10 +1,18 @@
 @echo off
-REM Launch TalkBack PR Reviewer (Java 25)
+REM Launch TalkBack AI Chat (Java 25)
 cd /d "%~dp0"
-if exist "pom.xml" (
-    call mvnw.cmd javafx:run 2>NUL
-    if errorlevel 1 call mvn javafx:run
-) else (
+if not exist "pom.xml" (
     echo Error: pom.xml not found. Please run from the repository root.
+    pause
+    exit /b 1
+)
+
+echo Stopping any running TalkBack instances...
+taskkill /F /FI "COMMANDLINE eq *talkback*" 2>NUL
+
+echo Building and launching TalkBack...
+call mvn compile javafx:run -q
+if errorlevel 1 (
+    echo Build failed. Check output above for errors.
     pause
 )
