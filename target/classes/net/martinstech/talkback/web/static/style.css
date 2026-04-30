@@ -263,10 +263,107 @@ html, body {
   align-items: center;
   justify-content: center;
   transition: background 150ms ease;
+  flex-shrink: 0;
 }
 
 .send-btn:hover {
   background: var(--navy-600);
+}
+
+/* Input toolbar */
+.input-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.mic-btn {
+  background: transparent;
+  border: none;
+  color: var(--slate-400);
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 150ms ease, background 150ms ease;
+  flex-shrink: 0;
+}
+
+.mic-btn:hover {
+  color: var(--gold-400);
+  background: var(--slate-800);
+}
+
+.mic-btn.recording {
+  color: var(--danger-400);
+  background: rgba(248, 113, 113, 0.15);
+  animation: pulse 1.2s infinite ease-in-out;
+}
+
+.attach-btn {
+  background: transparent;
+  border: none;
+  color: var(--slate-400);
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 150ms ease, background 150ms ease;
+  flex-shrink: 0;
+}
+
+.attach-btn:hover {
+  color: var(--gold-400);
+  background: var(--slate-800);
+}
+
+/* Attachment chips */
+.attachment-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 0 0 0;
+  min-height: 0;
+}
+
+.attachment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--navy-800);
+  border: 1px solid var(--slate-700);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--slate-100);
+  max-width: 200px;
+}
+
+.attachment-chip .chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-chip .chip-remove {
+  background: transparent;
+  border: none;
+  color: var(--slate-400);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.attachment-chip .chip-remove:hover {
+  color: var(--danger-400);
 }
 
 /* Animations */

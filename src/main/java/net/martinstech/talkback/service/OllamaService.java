@@ -167,13 +167,13 @@ public class OllamaService {
                 var toolMessages = new ArrayList<OllamaMessage>();
                 for (ToolCall tc : toolCalls) {
                     String result = toolExecutor.apply(tc);
-                    toolMessages.add(new OllamaMessage("tool", result, null, tc.name()));
+                    toolMessages.add(new OllamaMessage("tool", result, null, tc.name(), null));
                 }
 
                 // Build follow-up conversation
                 var followUp = new ArrayList<OllamaMessage>(messages);
                 // Add assistant message with tool_calls
-                followUp.add(new OllamaMessage("assistant", contentBuilder.toString(), toolCalls, null));
+                followUp.add(new OllamaMessage("assistant", contentBuilder.toString(), toolCalls, null, null));
                 followUp.addAll(toolMessages);
 
                 // Stream the final response
@@ -209,10 +209,10 @@ public class OllamaService {
             if (msg.has("tool_calls")) {
                 List<ToolCall> toolCalls = parseToolCalls(msg.get("tool_calls"));
                 var followUp = new ArrayList<OllamaMessage>(messages);
-                followUp.add(new OllamaMessage("assistant", content, toolCalls, null));
+                followUp.add(new OllamaMessage("assistant", content, toolCalls, null, null));
                 for (ToolCall tc : toolCalls) {
                     String result = toolExecutor.apply(tc);
-                    followUp.add(new OllamaMessage("tool", result, null, tc.name()));
+                    followUp.add(new OllamaMessage("tool", result, null, tc.name(), null));
                 }
                 String finalBody = buildChatBody(model, followUp, List.of(), false);
                 JsonNode finalRoot = mapper.readTree(sendChat(finalBody));
@@ -239,6 +239,12 @@ public class OllamaService {
             ObjectNode msgNode = msgs.addObject();
             msgNode.put("role", m.role());
             msgNode.put("content", m.content());
+            if (m.images() != null && !m.images().isEmpty()) {
+                ArrayNode imgArray = msgNode.putArray("images");
+                for (String img : m.images()) {
+                    imgArray.add(img);
+                }
+            }
             if (m.toolCalls() != null && !m.toolCalls().isEmpty()) {
                 ArrayNode tcArray = msgNode.putArray("tool_calls");
                 for (ToolCall tc : m.toolCalls()) {
@@ -314,6 +320,19 @@ public class OllamaService {
         onComplete.run();
     }
 
+    /**
+     * Streams a chat completion using raw Ollama messages (supports images).
+     */
+    public void chatStreamMessages(String model, List<OllamaMessage> messages,
+                                    Consumer<String> onChunk, Consumer<Throwable> onError, Runnable onComplete) {
+        try {
+            String body = buildChatBody(model, messages, List.of(), true);
+            streamChat(body, onChunk, onError, onComplete);
+        } catch (Exception e) {
+            onError.accept(e);
+        }
+    }
+
     private List<ToolCall> parseToolCalls(JsonNode toolCallsNode) {
         var calls = new ArrayList<ToolCall>();
         for (JsonNode tc : toolCallsNode) {
@@ -330,7 +349,8 @@ public class OllamaService {
     /* ------------------------------------------------------------------ */
 
     public record OllamaMessage(String role, String content,
-                                 List<ToolCall> toolCalls, String name) {}
+                                 List<ToolCall> toolCalls, String name,
+                                 List<String> images) {}
 
     public record ToolDefinition(String name, String description,
                                   Map<String, Object> parameters) {}

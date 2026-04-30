@@ -93,9 +93,10 @@ public class TalkBackApp extends Application {
             this::onSkillsAdd,
             this::onSkillsRemove,
             this::onSkillsUpdate,
-            this::onSkillsDetails
+            this::onSkillsDetails,
+            this::onImageMessage
         );
-        bridge.install(engine);
+        bridge.install(engine, chat.getStage());
 
         var tray = new SystemTrayManager(() -> Platform.runLater(chat::toggle));
         tray.install();
@@ -108,6 +109,23 @@ public class TalkBackApp extends Application {
         }
 
         chat.show();
+    }
+
+    private void onImageMessage(WebBridge.ImageMessage imageMsg) {
+        if (imageMsg == null) return;
+
+        String text = imageMsg.text() != null ? imageMsg.text() : "";
+        String name = imageMsg.name() != null ? imageMsg.name() : "";
+        String base64 = imageMsg.base64Image() != null ? imageMsg.base64Image() : "";
+
+        // Show the user message (with image reference) in the chat
+        String displayText = text.isBlank() ? "📎 " + name : text;
+        injectScript("window.appendMessage('user', `" + escapeJs(displayText) + "`);");
+        injectScript("window.setTyping(true);");
+
+        // Build the Ollama message with the image
+        history.add(new UserMessage(text));
+        executor.submit(() -> handleChatWithImages(text, base64));
     }
 
     private void onMessage(String text) {
@@ -129,6 +147,41 @@ public class TalkBackApp extends Application {
             executor.submit(() -> handlePrReview(text));
         } else {
             executor.submit(() -> handleChat(text));
+        }
+    }
+
+    private void handleChatWithImages(String text, String base64Image) {
+        try {
+            var messages = toOllamaMessages(history);
+            // Replace the last user message with one that includes the image
+            for (int i = messages.size() - 1; i >= 0; i--) {
+                if ("user".equals(messages.get(i).role())) {
+                    var old = messages.get(i);
+                    messages.set(i, new OllamaService.OllamaMessage(old.role(), old.content(), old.toolCalls(), old.name(), java.util.List.of(base64Image)));
+                    break;
+                }
+            }
+
+            ollama.chatStreamMessages(config.ollamaModel(), messages,
+                chunk -> Platform.runLater(() -> injectScript("window.appendAssistantChunk(`" + escapeJs(chunk) + "`);")),
+                error -> Platform.runLater(() -> {
+                    injectScript("window.setTyping(false);");
+                    injectScript("window.appendMessage('assistant', `**Erro:** " + escapeJs(error.getMessage()) + "`);");
+                }),
+                () -> Platform.runLater(() -> {
+                    injectScript("window.setTyping(false);");
+                    injectScript("window.finalizeAssistantMessage();");
+                    history.add(new AiMessage("[imagem analisada]"));
+                    if (history.size() > 20) {
+                        history.removeFirst();
+                    }
+                })
+            );
+        } catch (Exception e) {
+            Platform.runLater(() -> {
+                injectScript("window.setTyping(false);");
+                injectScript("window.appendMessage('assistant', `**Erro:** " + escapeJs(e.getMessage()) + "`);");
+            });
         }
     }
 
@@ -201,7 +254,7 @@ public class TalkBackApp extends Application {
 
     private void streamAssistantWithTools(String prompt) {
         var ollamaMessages = toOllamaMessages(history);
-        ollamaMessages.add(new OllamaService.OllamaMessage("user", prompt, null, null));
+        ollamaMessages.add(new OllamaService.OllamaMessage("user", prompt, null, null, null));
 
         var webSearchTool = new OllamaService.ToolDefinition(
             "web_search",
@@ -258,9 +311,9 @@ public class TalkBackApp extends Application {
         var result = new ArrayList<OllamaService.OllamaMessage>();
         for (ChatMessage msg : messages) {
             if (msg instanceof UserMessage um) {
-                result.add(new OllamaService.OllamaMessage("user", um.singleText(), null, null));
+                result.add(new OllamaService.OllamaMessage("user", um.singleText(), null, null, null));
             } else if (msg instanceof AiMessage am) {
-                result.add(new OllamaService.OllamaMessage("assistant", am.text(), null, null));
+                result.add(new OllamaService.OllamaMessage("assistant", am.text(), null, null, null));
             }
         }
         return result;
