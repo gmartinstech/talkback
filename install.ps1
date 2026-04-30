@@ -1,5 +1,5 @@
 # Copiloto Installation Script for Windows
-# Verifica dependências, compila o projeto e cria atalhos
+# Verifica dependencias, compila o projeto e cria atalhos
 
 $ErrorActionPreference = "Stop"
 
@@ -7,14 +7,14 @@ Write-Host "=== Copiloto Windows Installer ===" -ForegroundColor Cyan
 Write-Host ""
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-Write-Host "Diretório do projeto: $ScriptDir" -ForegroundColor Gray
+Write-Host "Diretorio do projeto: $ScriptDir" -ForegroundColor Gray
 
 # ============================================================================
-# Verificar pré-requisitos
+# Verificar pre-requisitos
 # ============================================================================
 
 Write-Host ""
-Write-Host "[1/5] Verificando pré-requisitos..." -ForegroundColor Yellow
+Write-Host "[1/5] Verificando pre-requisitos..." -ForegroundColor Yellow
 
 # Java 25+
 try {
@@ -22,35 +22,35 @@ try {
     if ($javaVersion -match '"(\d+)\.(\d+)') {
         $major = [int]$matches[1]
         if ($major -ge 25) {
-            Write-Host "  ✓ Java $major instalado" -ForegroundColor Green
+            Write-Host "  [OK] Java $major instalado" -ForegroundColor Green
         } else {
-            Write-Host "  ✗ Java $major encontrado, mas é necessário Java 25+" -ForegroundColor Red
+            Write-Host "  [ERRO] Java $major encontrado, mas e necessario Java 25+" -ForegroundColor Red
             exit 1
         }
     } else {
-        Write-Host "  ✗ Não foi possível determinar a versão do Java" -ForegroundColor Red
+        Write-Host "  [ERRO] Nao foi possivel determinar a versao do Java" -ForegroundColor Red
         exit 1
     }
 } catch {
-    Write-Host "  ✗ Java não encontrado. Instale o Java 25+ (recomendado: Microsoft Build of OpenJDK)" -ForegroundColor Red
+    Write-Host "  [ERRO] Java nao encontrado. Instale o Java 25+" -ForegroundColor Red
     exit 1
 }
 
 # Maven
 try {
     $mvnVersion = & mvn -version 2>&1 | Select-Object -First 1
-    Write-Host "  ✓ Maven encontrado: $mvnVersion" -ForegroundColor Green
+    Write-Host "  [OK] Maven encontrado: $mvnVersion" -ForegroundColor Green
 } catch {
-    Write-Host "  ✗ Maven não encontrado. Instale o Apache Maven 3.9+" -ForegroundColor Red
+    Write-Host "  [ERRO] Maven nao encontrado. Instale o Apache Maven 3.9+" -ForegroundColor Red
     exit 1
 }
 
 # Python
 try {
     $pyVersion = & py --version 2>&1
-    Write-Host "  ✓ Python encontrado: $pyVersion" -ForegroundColor Green
+    Write-Host "  [OK] Python encontrado: $pyVersion" -ForegroundColor Green
 } catch {
-    Write-Host "  ✗ Python não encontrado. Instale o Python 3.12+" -ForegroundColor Red
+    Write-Host "  [ERRO] Python nao encontrado. Instale o Python 3.12+" -ForegroundColor Red
     exit 1
 }
 
@@ -58,14 +58,14 @@ try {
 try {
     $edgeVersion = & py -m pip show edge-tts 2>$null | Select-String "^Version:" | ForEach-Object { $_.ToString().Split(':')[1].Trim() }
     if ($edgeVersion) {
-        Write-Host "  ✓ edge-tts $edgeVersion instalado" -ForegroundColor Green
+        Write-Host "  [OK] edge-tts $edgeVersion instalado" -ForegroundColor Green
     } else {
-        throw "edge-tts não instalado"
+        throw "edge-tts nao instalado"
     }
 } catch {
-    Write-Host "  → Instalando edge-tts..." -ForegroundColor Yellow
+    Write-Host "  -> Instalando edge-tts..." -ForegroundColor Yellow
     & py -m pip install edge-tts --quiet
-    Write-Host "  ✓ edge-tts instalado" -ForegroundColor Green
+    Write-Host "  [OK] edge-tts instalado" -ForegroundColor Green
 }
 
 # ============================================================================
@@ -78,19 +78,19 @@ Push-Location $ScriptDir
 try {
     & mvn clean package -DskipTests -q
     if ($LASTEXITCODE -ne 0) {
-        throw "Falha na compilação"
+        throw "Falha na compilacao"
     }
-    Write-Host "  ✓ Compilação concluída" -ForegroundColor Green
+    Write-Host "  [OK] Compilacao concluida" -ForegroundColor Green
 } finally {
     Pop-Location
 }
 
 # ============================================================================
-# Criar diretório de instalação
+# Criar diretorio de instalacao
 # ============================================================================
 
 Write-Host ""
-Write-Host "[3/5] Criando diretório de instalação..." -ForegroundColor Yellow
+Write-Host "[3/5] Criando diretorio de instalacao..." -ForegroundColor Yellow
 
 $InstallDir = "$env:USERPROFILE\Copiloto"
 if (-not (Test-Path $InstallDir)) {
@@ -101,9 +101,10 @@ if (-not (Test-Path $InstallDir)) {
 $JarSource = Get-ChildItem -Path "$ScriptDir\target" -Filter "copiloto-*.jar" | Where-Object { $_.Name -notlike "original-*" } | Select-Object -First 1
 if ($JarSource) {
     Copy-Item $JarSource.FullName "$InstallDir\copiloto.jar" -Force
-    Write-Host "  ✓ JAR copiado para $InstallDir\copiloto.jar ($([math]::Round($JarSource.Length/1MB,2)) MB)" -ForegroundColor Green
+    $sizeMB = [math]::Round($JarSource.Length/1MB,2)
+    Write-Host "  [OK] JAR copiado para $InstallDir\copiloto.jar (${sizeMB} MB)" -ForegroundColor Green
 } else {
-    Write-Host "  ✗ JAR não encontrado em target/" -ForegroundColor Red
+    Write-Host "  [ERRO] JAR nao encontrado em target/" -ForegroundColor Red
     exit 1
 }
 
@@ -111,14 +112,14 @@ if ($JarSource) {
 Copy-Item "$ScriptDir\config.json" "$InstallDir\config.json" -Force -ErrorAction SilentlyContinue
 Copy-Item "$ScriptDir\speak.py" "$InstallDir\speak.py" -Force
 Copy-Item "$ScriptDir\hooks" "$InstallDir\hooks" -Recurse -Force -ErrorAction SilentlyContinue
-Write-Host "  ✓ Arquivos auxiliares copiados" -ForegroundColor Green
+Write-Host "  [OK] Arquivos auxiliares copiados" -ForegroundColor Green
 
 # ============================================================================
-# Criar script de lançamento
+# Criar script de lancamento
 # ============================================================================
 
 Write-Host ""
-Write-Host "[4/5] Criando script de lançamento..." -ForegroundColor Yellow
+Write-Host "[4/5] Criando script de lancamento..." -ForegroundColor Yellow
 
 $LauncherContent = @"
 @echo off
@@ -130,9 +131,9 @@ java --enable-preview --enable-native-access=ALL-UNNAMED -cp "$InstallDir\copilo
 "@
 
 Set-Content -Path "$InstallDir\Copiloto.bat" -Value $LauncherContent -Encoding UTF8
-Write-Host "  ✓ Launcher criado: $InstallDir\Copiloto.bat" -ForegroundColor Green
+Write-Host "  [OK] Launcher criado: $InstallDir\Copiloto.bat" -ForegroundColor Green
 
-# Criar atalho na área de trabalho
+# Criar atalho na area de trabalho
 $WshShell = New-Object -ComObject WScript.Shell
 $DesktopPath = [Environment]::GetFolderPath("Desktop")
 $Shortcut = $WshShell.CreateShortcut("$DesktopPath\Copiloto.lnk")
@@ -141,7 +142,7 @@ $Shortcut.WorkingDirectory = "$InstallDir"
 $Shortcut.IconLocation = "javaw.exe,0"
 $Shortcut.Description = "Copiloto - Assistente de IA"
 $Shortcut.Save()
-Write-Host "  ✓ Atalho criado na área de trabalho" -ForegroundColor Green
+Write-Host "  [OK] Atalho criado na area de trabalho" -ForegroundColor Green
 
 # ============================================================================
 # Configurar hooks do Claude Code (opcional)
@@ -196,26 +197,26 @@ $Settings.hooks | Add-Member -NotePropertyName "Stop" -NotePropertyValue @($Stop
 $Settings.hooks | Add-Member -NotePropertyName "PostToolUse" -NotePropertyValue @($PostToolHook) -Force
 
 $Settings | ConvertTo-Json -Depth 10 | Set-Content $SettingsPath -Encoding UTF8
-Write-Host "  ✓ Hooks configurados em $SettingsPath" -ForegroundColor Green
+Write-Host "  [OK] Hooks configurados em $SettingsPath" -ForegroundColor Green
 
 # ============================================================================
-# Finalização
+# Finalizacao
 # ============================================================================
 
 Write-Host ""
-Write-Host "=== Instalação Concluída ===" -ForegroundColor Green
+Write-Host "=== Instalacao Concluida ===" -ForegroundColor Green
 Write-Host ""
-Write-Host "Copiloto está pronto para usar!" -ForegroundColor Cyan
+Write-Host "Copiloto esta pronto para usar!" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Para iniciar:" -ForegroundColor White
-Write-Host "  • Duplo-clique no atalho da área de trabalho" -ForegroundColor Gray
-Write-Host "  • Ou execute: $InstallDir\Copiloto.bat" -ForegroundColor Gray
+Write-Host "  - Duplo-clique no atalho da area de trabalho" -ForegroundColor Gray
+Write-Host "  - Ou execute: $InstallDir\Copiloto.bat" -ForegroundColor Gray
 Write-Host ""
-Write-Host "Para compilar do código-fonte:" -ForegroundColor White
-Write-Host "  cd `"$ScriptDir`" && mvn javafx:run" -ForegroundColor Gray
+Write-Host "Para compilar do codigo-fonte:" -ForegroundColor White
+Write-Host "  cd `"$ScriptDir`" ; mvn javafx:run" -ForegroundColor Gray
 Write-Host ""
 Write-Host "Para desinstalar:" -ForegroundColor White
 Write-Host "  1. Delete a pasta: $InstallDir" -ForegroundColor Gray
-Write-Host "  2. Delete o atalho da área de trabalho" -ForegroundColor Gray
+Write-Host "  2. Delete o atalho da area de trabalho" -ForegroundColor Gray
 Write-Host "  3. Execute: .\uninstall.ps1" -ForegroundColor Gray
 Write-Host ""
