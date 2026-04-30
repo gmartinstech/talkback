@@ -1,4 +1,5 @@
-C:\Users\gmartinssi\talkback\src\test\java\net\martinstech\talkback\config\AppConfigTest.java
-C:\Users\gmartinssi\talkback\src\test\java\net\martinstech\talkback\service\GitHubServiceTest.java
-C:\Users\gmartinssi\talkback\src\test\java\net\martinstech\talkback\service\SkillsServiceIntegrationTest.java
-C:\Users\gmartinssi\talkback\src\test\java\net\martinstech\talkback\service\WebSearchServiceTest.java
+C:\Users\gmartinssi\talkback\src\test\java\net\martinstech\copiloto\config\AppConfigTest.java
+C:\Users\gmartinssi\talkback\src\test\java\net\martinstech\copiloto\service\GitHubServiceTest.java
+C:\Users\gmartinssi\talkback\src\test\java\net\martinstech\copiloto\service\OllamaServiceRealTest.java
+C:\Users\gmartinssi\talkback\src\test\java\net\martinstech\copiloto\service\SkillsServiceIntegrationTest.java
+C:\Users\gmartinssi\talkback\src\test\java\net\martinstech\copiloto\service\WebSearchServiceTest.java

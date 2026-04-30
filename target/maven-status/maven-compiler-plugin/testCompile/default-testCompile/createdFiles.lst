@@ -1,4 +1,5 @@
-net\martinstech\talkback\service\GitHubServiceTest.class
-net\martinstech\talkback\service\SkillsServiceIntegrationTest.class
-net\martinstech\talkback\service\WebSearchServiceTest.class
-net\martinstech\talkback\config\AppConfigTest.class
+net\martinstech\copiloto\config\AppConfigTest.class
+net\martinstech\copiloto\service\OllamaServiceRealTest.class
+net\martinstech\copiloto\service\SkillsServiceIntegrationTest.class
+net\martinstech\copiloto\service\WebSearchServiceTest.class
+net\martinstech\copiloto\service\GitHubServiceTest.class
