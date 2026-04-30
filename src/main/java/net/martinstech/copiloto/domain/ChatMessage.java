@@ -4,7 +4,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * A single chat bubble in the TalkBack reviewer conversation.
+ * A single chat bubble in the Copiloto reviewer conversation.
  *
  * @param id        the unique message identifier
  * @param role      either {@code "user"} or {@code "assistant"}

@@ -34,7 +34,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Main entry point for the TalkBack desktop application.
+ * Main entry point for the Copiloto desktop application.
  *
  * <p>Bootstraps the JavaFX runtime, loads configuration, wires services
  * and installs the system tray icon, global hotkey and floating chat window.

@@ -21,7 +21,7 @@ public class ChatStage {
         stage.initStyle(StageStyle.UNDECORATED);
         stage.setWidth(380);
         stage.setHeight(600);
-        stage.setTitle("TalkBack Assistente");
+        stage.setTitle("Copiloto Assistente");
         positionNearTray();
 
         webView = new WebView();
@@ -30,7 +30,7 @@ public class ChatStage {
         if (url != null) {
             engine.load(url.toExternalForm());
         } else {
-            engine.loadContent("<html><body style='background:#0C1222;color:#F1F5F9;'>TalkBack: chat UI not found</body></html>");
+            engine.loadContent("<html><body style='background:#0C1222;color:#F1F5F9;'>Copiloto: chat UI not found</body></html>");
         }
 
         var scene = new Scene(webView);

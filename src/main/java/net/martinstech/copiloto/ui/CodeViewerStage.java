@@ -20,7 +20,7 @@ public class CodeViewerStage {
         stage.initModality(Modality.NONE);
         stage.setWidth(800);
         stage.setHeight(600);
-        stage.setTitle("TalkBack Visualizador de Diferenças");
+        stage.setTitle("Copiloto Visualizador de Diferencas");
 
         webView = new WebView();
         var engine = webView.getEngine();

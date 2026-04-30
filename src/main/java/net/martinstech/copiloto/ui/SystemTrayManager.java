@@ -4,7 +4,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 
 /**
- * Manages the AWT system tray icon for TalkBack.
+ * Manages the AWT system tray icon for Copiloto.
  */
 public class SystemTrayManager {
     private final Runnable onToggle;
@@ -24,7 +24,7 @@ public class SystemTrayManager {
         }
 
         var tray = SystemTray.getSystemTray();
-        trayIcon = new TrayIcon(createIcon(), "TalkBack");
+        trayIcon = new TrayIcon(createIcon(), "Copiloto");
         trayIcon.setImageAutoSize(true);
         trayIcon.addActionListener(e -> onToggle.run());
 

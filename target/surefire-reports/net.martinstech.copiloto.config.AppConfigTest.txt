@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: net.martinstech.copiloto.config.AppConfigTest
--------------------------------------------------------------------------------
-Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.277 s -- in net.martinstech.copiloto.config.AppConfigTest

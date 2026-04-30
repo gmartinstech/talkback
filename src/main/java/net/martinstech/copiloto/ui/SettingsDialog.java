@@ -21,7 +21,7 @@ public class SettingsDialog extends Dialog<AppConfig> {
     private final ComboBox<String> languageBox;
 
     public SettingsDialog(AppConfig current, List<String> models) {
-        setTitle("TalkBack Configurações");
+        setTitle("Copiloto Configurações");
         initModality(Modality.APPLICATION_MODAL);
 
         var grid = new GridPane();
