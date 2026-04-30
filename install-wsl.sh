@@ -1,11 +1,11 @@
 #!/bin/bash
-# TalkBack Installation Script for WSL
+# Copiloto Installation Script for WSL
 # Configures WSL Claude Code hooks to call Windows Python with Windows paths
 # This ensures Edge TTS and Kokoro (installed on Windows) are always available
 
 set -e
 
-echo "=== TalkBack WSL Installer ==="
+echo "=== Copiloto WSL Installer ==="
 echo ""
 
 # Detect if we're in WSL
@@ -57,10 +57,10 @@ SETTINGS_PATH="$CLAUDE_DIR/settings.json"
 # Create .claude directory if needed
 mkdir -p "$CLAUDE_DIR"
 
-# Windows paths to the talkback scripts (hardcoded to Windows location)
-WIN_TALKBACK_DIR="C:\\Users\\gsilva\\talkback"
-WIN_ON_STOP="$WIN_TALKBACK_DIR\\hooks\\on_stop.py"
-WIN_ON_TOOL="$WIN_TALKBACK_DIR\\hooks\\on_tool_complete.py"
+# Windows paths to the Copiloto scripts (hardcoded to Windows location)
+WIN_Copiloto_DIR="C:\\Users\\gsilva\\Copiloto"
+WIN_ON_STOP="$WIN_Copiloto_DIR\\hooks\\on_stop.py"
+WIN_ON_TOOL="$WIN_Copiloto_DIR\\hooks\\on_tool_complete.py"
 
 # Create or update settings.json
 if [ -f "$SETTINGS_PATH" ]; then
@@ -120,8 +120,8 @@ PYTHON_SCRIPT
 # Test TTS using Windows Python
 echo ""
 echo "Testing TTS..."
-WIN_SPEAK="C:\\Users\\gsilva\\talkback\\speak.py"
-if python.exe "$WIN_SPEAK" "TalkBack installed successfully" 2>/dev/null; then
+WIN_SPEAK="C:\\Users\\gsilva\\Copiloto\\speak.py"
+if python.exe "$WIN_SPEAK" "Copiloto installed successfully" 2>/dev/null; then
     echo "  TTS test passed!"
 else
     echo "  TTS test may have issues"
@@ -131,15 +131,15 @@ fi
 echo ""
 echo "=== Installation Complete ==="
 echo ""
-echo "TalkBack hooks are now active for this WSL distro!"
+echo "Copiloto hooks are now active for this WSL distro!"
 echo ""
 echo "How it works:"
 echo "  - WSL Claude Code triggers hooks"
 echo "  - Hooks call Windows Python (python.exe)"
-echo "  - Windows Python runs talkback scripts from C:\\Users\\gsilva\\talkback"
+echo "  - Windows Python runs Copiloto scripts from C:\\Users\\gsilva\\Copiloto"
 echo "  - Edge TTS and Kokoro (on Windows) are always available"
 echo ""
-echo "Configuration: C:\\Users\\gsilva\\talkback\\config.json"
+echo "Configuration: C:\\Users\\gsilva\\Copiloto\\config.json"
 echo ""
-echo "To test: python.exe \"C:\\Users\\gsilva\\talkback\\speak.py\" \"Hello world\""
+echo "To test: python.exe \"C:\\Users\\gsilva\\Copiloto\\speak.py\" \"Hello world\""
 echo ""

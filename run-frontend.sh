@@ -7,8 +7,8 @@ if [[ ! -f "pom.xml" ]]; then
     exit 1
 fi
 
-echo "Stopping any running TalkBack instances..."
-pkill -f "talkback" 2>/dev/null || true
+echo "Stopping any running Copiloto instances..."
+pkill -f "Copiloto" 2>/dev/null || true
 
-echo "Building and launching TalkBack..."
+echo "Building and launching Copiloto..."
 mvn compile javafx:run -q

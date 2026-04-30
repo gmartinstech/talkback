@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TalkBack TTS Engine
+Copiloto TTS Engine
 Cross-platform: Windows native and WSL (plays through Windows audio)
 Uses Kokoro TTS (WSL primary), Edge TTS (Windows primary), or SAPI (fallback)
 """
@@ -30,7 +30,7 @@ DEFAULT_CONFIG = {
     "volume": "+0%",
     "max_speak_length": 500,
     "fallback_to_sapi": True,
-    "log_file": "~/.claude/talkback.log",
+    "log_file": "~/.claude/Copiloto.log",
     "qwen": {
         "model": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
         "speaker": "Ryan",
@@ -112,7 +112,7 @@ def load_config():
 def log_error(message):
     """Log errors to file"""
     config = DEFAULT_CONFIG
-    log_path = Path(os.path.expanduser(config.get("log_file", "~/.claude/talkback.log")))
+    log_path = Path(os.path.expanduser(config.get("log_file", "~/.claude/Copiloto.log")))
     try:
         log_path.parent.mkdir(parents=True, exist_ok=True)
         with open(log_path, 'a') as f:
@@ -317,7 +317,7 @@ def speak_kokoro(text, voice="af_bella"):
         if IS_WSL:
             temp_dir = "/mnt/c/temp"
             os.makedirs(temp_dir, exist_ok=True)
-            tmp_path = os.path.join(temp_dir, f"talkback_{os.getpid()}.wav")
+            tmp_path = os.path.join(temp_dir, f"Copiloto_{os.getpid()}.wav")
         else:
             tmp_path = tempfile.mktemp(suffix='.wav')
 
@@ -355,7 +355,7 @@ async def speak_edge_tts(text, voice="en-US-AriaNeural", rate="+10%", volume="+0
             # Use /mnt/c/temp for WSL so Windows can access it
             temp_dir = "/mnt/c/temp"
             os.makedirs(temp_dir, exist_ok=True)
-            tmp_path = os.path.join(temp_dir, f"talkback_{os.getpid()}.mp3")
+            tmp_path = os.path.join(temp_dir, f"Copiloto_{os.getpid()}.mp3")
         else:
             with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp:
                 tmp_path = tmp.name
@@ -507,7 +507,7 @@ def speak_qwen(text, config):
         if IS_WSL:
             temp_dir = "/mnt/c/temp"
             os.makedirs(temp_dir, exist_ok=True)
-            tmp_path = os.path.join(temp_dir, f"talkback_qwen_{os.getpid()}.wav")
+            tmp_path = os.path.join(temp_dir, f"Copiloto_qwen_{os.getpid()}.wav")
         else:
             tmp_path = tempfile.mktemp(suffix=".wav")
 
@@ -686,9 +686,9 @@ def speak(text, config=None):
         if IS_WSL:
             temp_dir = "/mnt/c/temp"
             os.makedirs(temp_dir, exist_ok=True)
-            audio_path = os.path.join(temp_dir, f"talkback_{os.getpid()}.mp3")
+            audio_path = os.path.join(temp_dir, f"Copiloto_{os.getpid()}.mp3")
         else:
-            audio_path = os.path.join(tempfile.gettempdir(), f"talkback_{os.getpid()}.mp3")
+            audio_path = os.path.join(tempfile.gettempdir(), f"Copiloto_{os.getpid()}.mp3")
 
         try:
             # Generate complete audio using streaming (handles any text length)
@@ -838,7 +838,7 @@ if __name__ == "__main__":
         else:
             text = " ".join(sys.argv[1:])
     else:
-        text = "Hello! TalkBack TTS engine is working correctly."
+        text = "Hello! Copiloto TTS engine is working correctly."
 
     try:
         print(f"Speaking: {text[:50]}...")

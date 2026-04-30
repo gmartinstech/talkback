@@ -1,4 +1,4 @@
-# TalkBack Design System
+# Copiloto Design System
 
 ## Source
 Based on [gmartinstech/maritime-design-system](https://github.com/gmartinstech/maritime-design-system) — Maritime Precision: Navy #003566 + Gold #F5CC00.

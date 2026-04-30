@@ -1,9 +1,9 @@
-# TalkBack Installation Script for Windows
+# Copiloto Installation Script for Windows
 # Installs dependencies and configures Claude Code hooks
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== TalkBack Windows Installer ===" -ForegroundColor Cyan
+Write-Host "=== Copiloto Windows Installer ===" -ForegroundColor Cyan
 Write-Host ""
 
 # Get script directory
@@ -99,7 +99,7 @@ Write-Host "  Saved to: $SettingsPath" -ForegroundColor Gray
 Write-Host ""
 Write-Host "[4/4] Testing TTS..." -ForegroundColor Yellow
 try {
-    $testResult = & python "$ScriptDir\speak.py" "TalkBack installed successfully" 2>&1
+    $testResult = & python "$ScriptDir\speak.py" "Copiloto installed successfully" 2>&1
     Write-Host "  TTS test completed" -ForegroundColor Green
 } catch {
     Write-Host "  TTS test failed - check configuration" -ForegroundColor Yellow
@@ -109,7 +109,7 @@ try {
 Write-Host ""
 Write-Host "=== Installation Complete ===" -ForegroundColor Green
 Write-Host ""
-Write-Host "TalkBack hooks are now active!" -ForegroundColor Cyan
+Write-Host "Copiloto hooks are now active!" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Configuration: $ScriptDir\config.json" -ForegroundColor Gray
 Write-Host ""

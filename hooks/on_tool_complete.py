@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TalkBack PostToolUse Hook
+Copiloto PostToolUse Hook
 Announces tool completions and optionally speaks results.
 This serves as a "thinking process" narrator - letting you hear what Claude is doing.
 

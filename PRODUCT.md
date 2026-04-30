@@ -1,11 +1,11 @@
-# TalkBack PR Reviewer
+# Copiloto PR Reviewer
 
 ## Users
 Software engineers who use Claude Code and want voice feedback + an easy way to review GitHub PRs with local LLM assistance.
 
 ## Product Purpose
 A desktop companion app that:
-1. Provides text-to-speech for Claude Code responses (existing TalkBack)
+1. Provides text-to-speech for Claude Code responses (existing Copiloto)
 2. Offers a floating chat widget for reviewing GitHub PRs using local Ollama models
 
 ## Tone

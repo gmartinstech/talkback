@@ -1,6 +1,6 @@
-# TalkBack
+# Copiloto
 
-A desktop companion for AI-assisted development. TalkBack combines a floating chat widget, PR review assistant, agent skills manager, and text-to-speech narrator into one seamless tool.
+A desktop companion for AI-assisted development. Copiloto combines a floating chat widget, PR review assistant, agent skills manager, and text-to-speech narrator into one seamless tool.
 
 **Cross-platform:** Works on Windows and WSL.
 
@@ -27,16 +27,16 @@ A desktop companion for AI-assisted development. TalkBack combines a floating ch
 ### Windows
 
 ```powershell
-git clone https://github.com/gmartinstech/talkback.git
-cd talkback
+git clone https://github.com/gmartinstech/Copiloto.git
+cd Copiloto
 .\install.ps1
 ```
 
 ### WSL (Ubuntu, etc.)
 
 ```bash
-git clone https://github.com/gmartinstech/talkback.git
-cd talkback
+git clone https://github.com/gmartinstech/Copiloto.git
+cd Copiloto
 bash install-wsl.sh
 ```
 
@@ -75,7 +75,7 @@ Edit `config.json`:
 
 ## Usage
 
-Once installed, TalkBack runs automatically:
+Once installed, Copiloto runs automatically:
 
 1. **Response Speaking**: After Claude finishes, you'll hear the response
 2. **Thinking Mode**: Hear what Claude is doing (tool announcements) - ON by default
@@ -129,7 +129,7 @@ mvn javafx:run
 ## Architecture
 
 ```
-talkback/
+Copiloto/
 ├── config.json              # Configuration
 ├── speak.py                 # TTS engine (Kokoro, Edge, SAPI)
 ├── hooks/                   # Claude Code hooks (Python)
@@ -137,8 +137,8 @@ talkback/
 │   └── on_tool_complete.py
 ├── pom.xml                  # Java 25 build
 ├── src/
-│   └── main/java/io/gmartinstech/talkback/
-│       ├── TalkBackApp.java          # JavaFX entry point
+│   └── main/java/io/gmartinstech/Copiloto/
+│       ├── CopilotoApp.java          # JavaFX entry point
 │       ├── config/                   # AppConfig, ScopedValue carrier
 │       ├── domain/                   # PullRequest, ChatMessage records
 │       ├── service/                  # Ollama, GitHub, TTS bridges
@@ -172,7 +172,7 @@ Edge TTS → SAPI (Windows built-in)
 **No sound?**
 1. Check `enabled: true` in config.json
 2. Test: `python speak.py "test"` (Windows) or `python.exe speak.py "test"` (WSL)
-3. Check `~/.claude/talkback.log`
+3. Check `~/.claude/Copiloto.log`
 
 **WSL issues?**
 - Ensure Windows Python is in PATH: `python.exe --version`

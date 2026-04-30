@@ -1,8 +1,8 @@
 #!/bin/bash
-# TalkBack Uninstall Script for WSL
+# Copiloto Uninstall Script for WSL
 # Removes hooks from Claude Code settings
 
-echo "=== TalkBack WSL Uninstaller ==="
+echo "=== Copiloto WSL Uninstaller ==="
 echo ""
 
 SETTINGS_PATH="$HOME/.claude/settings.json"
@@ -40,16 +40,16 @@ if 'hooks' in settings:
             json.dump(settings, f, indent=2)
         print(f"Removed hooks: {', '.join(removed)}")
     else:
-        print("No TalkBack hooks found.")
+        print("No Copiloto hooks found.")
 else:
     print("No hooks found in settings.")
 
 PYTHON_SCRIPT
 
 echo ""
-echo "TalkBack hooks removed successfully!"
+echo "Copiloto hooks removed successfully!"
 echo ""
-echo "Note: The talkback folder has not been deleted."
+echo "Note: The Copiloto folder has not been deleted."
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 echo "To fully remove, delete: $SCRIPT_DIR"
 echo ""

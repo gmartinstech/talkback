@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TalkBack Stop Hook
+Copiloto Stop Hook
 Speaks Claude's final response when Claude finishes responding.
 
 Hook Event: Stop

@@ -1,4 +1,4 @@
-# Launch TalkBack AI Chat (Java 25)
+# Launch Copiloto AI Chat (Java 25)
 $ErrorActionPreference = "Stop"
 Push-Location $PSScriptRoot
 
@@ -7,12 +7,12 @@ try {
         throw "pom.xml not found. Please run from the repository root."
     }
 
-    Write-Host "Stopping any running TalkBack instances..." -ForegroundColor Yellow
+    Write-Host "Stopping any running Copiloto instances..." -ForegroundColor Yellow
     Get-Process -Name "java","javaw" -ErrorAction SilentlyContinue |
-        Where-Object { $_.CommandLine -like "*talkback*" } |
+        Where-Object { $_.CommandLine -like "*Copiloto*" } |
         ForEach-Object { Stop-Process -Id $_.Id -Force }
 
-    Write-Host "Building and launching TalkBack..." -ForegroundColor Green
+    Write-Host "Building and launching Copiloto..." -ForegroundColor Green
     & mvn compile javafx:run -q
 } catch {
     Write-Error $_.Exception.Message
