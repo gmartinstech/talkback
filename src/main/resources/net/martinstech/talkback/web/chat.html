@@ -87,7 +87,7 @@
   <div id="skills-overlay" class="skills-overlay" onclick="closeSkillsPanel()"></div>
   <div id="skills-panel" class="skills-panel">
     <div class="skills-header">
-      <h2>Habilidades</h2>
+      <h2 id="skills-title">Habilidades</h2>
       <button class="icon-btn" onclick="closeSkillsPanel()" title="Fechar">
         <i data-lucide="x" width="18" height="18"></i>
       </button>
@@ -767,6 +767,111 @@
         window.talkback.send(fullText);
       }
     });
+
+    /* --------------------------------------------------------------- */
+    /* Localization                                                    */
+    /* --------------------------------------------------------------- */
+    const i18n = {
+      'pt-BR': {
+        title: 'TalkBack Assistente',
+        minimize: 'Minimizar',
+        settings: 'Configurações',
+        skills: 'Habilidades',
+        close: 'Fechar',
+        attach: 'Anexar documento',
+        dictate: 'Ditar (voz)',
+        stopDictate: 'Parar ditado',
+        placeholder: 'Cole um link de PR ou digite uma mensagem...',
+        skillsTitle: 'Habilidades',
+        skillsPlaceholder: 'Buscar habilidades...',
+        search: 'Buscar',
+        remove: 'Remover',
+        documentPrefix: 'Documento',
+      },
+      'en-US': {
+        title: 'TalkBack Assistant',
+        minimize: 'Minimize',
+        settings: 'Settings',
+        skills: 'Skills',
+        close: 'Close',
+        attach: 'Attach document',
+        dictate: 'Dictate (voice)',
+        stopDictate: 'Stop dictation',
+        placeholder: 'Paste a PR link or type a message...',
+        skillsTitle: 'Skills',
+        skillsPlaceholder: 'Search skills...',
+        search: 'Search',
+        remove: 'Remove',
+        documentPrefix: 'Document',
+      }
+    };
+
+    let currentLang = 'pt-BR';
+    try {
+      if (window.talkback && window.talkback.getLanguage) {
+        currentLang = window.talkback.getLanguage() || 'pt-BR';
+      }
+    } catch (e) { console.error(e); }
+
+    const t = i18n[currentLang] || i18n['pt-BR'];
+
+    const h1El = document.querySelector('h1');
+    if (h1El) h1El.textContent = t.title;
+    const minimizeBtn = document.getElementById('minimize-btn');
+    if (minimizeBtn) minimizeBtn.title = t.minimize;
+    const settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) settingsBtn.title = t.settings;
+    const skillsBtn = document.getElementById('skills-btn');
+    if (skillsBtn) skillsBtn.title = t.skills;
+    const closeBtn = document.getElementById('close-btn');
+    if (closeBtn) closeBtn.title = t.close;
+    const attachBtn = document.getElementById('attach-btn');
+    if (attachBtn) attachBtn.title = t.attach;
+    const micBtn = document.getElementById('mic-btn');
+    if (micBtn) micBtn.title = t.dictate;
+    const msgInput = document.getElementById('message-input');
+    if (msgInput) msgInput.placeholder = t.placeholder;
+    const skillsTitle = document.getElementById('skills-title');
+    if (skillsTitle) skillsTitle.textContent = t.skillsTitle;
+    const skillsSearchInput = document.getElementById('skills-search-input');
+    if (skillsSearchInput) skillsSearchInput.placeholder = t.skillsPlaceholder;
+    const tabSearch = document.getElementById('tab-search');
+    if (tabSearch) tabSearch.textContent = t.search;
+
+    // Update dictation language
+    if (recognition) {
+      recognition.lang = currentLang === 'en-US' ? 'en-US' : 'pt-BR';
+    }
+
+    // Override renderAttachment for localized document prefix
+    const origRenderAttachment = renderAttachment;
+    renderAttachment = function() {
+      if (!currentAttachment) { attachmentBar.style.display = 'none'; return; }
+      attachmentBar.style.display = 'flex';
+      const icon = currentAttachment.type && currentAttachment.type.startsWith('image/') ? '🖼️' : '📄';
+      attachmentBar.innerHTML = `
+        <div class="attachment-chip">
+          <span>${icon}</span>
+          <span class="chip-name">${t.documentPrefix}: ${escapeHtml(currentAttachment.name || '')}</span>
+          <button class="chip-remove" onclick="removeAttachment()" title="${t.remove}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      `;
+    };
+
+    // Override mic stop title
+    if (recognition) {
+      const origOnStart = recognition.onstart;
+      recognition.onstart = () => {
+        isRecording = true;
+        micBtn.classList.add('recording');
+        micBtn.title = t.stopDictate;
+      };
+    }
   </script>
 </body>
 </html>

@@ -18,6 +18,7 @@ public class SettingsDialog extends Dialog<AppConfig> {
     private final CheckBox speakResponsesBox;
     private final CheckBox speakThinkingBox;
     private final CheckBox webSearchBox;
+    private final ComboBox<String> languageBox;
 
     public SettingsDialog(AppConfig current, List<String> models) {
         setTitle("TalkBack Configurações");
@@ -52,15 +53,21 @@ public class SettingsDialog extends Dialog<AppConfig> {
         webSearchBox = new CheckBox("Ativar busca na web");
         webSearchBox.setSelected(current.webSearchEnabled());
 
+        languageBox = new ComboBox<>();
+        languageBox.getItems().addAll("pt-BR", "en-US");
+        languageBox.setValue(current.language());
+
         grid.add(new Label("URL do Ollama"), 0, 0);
         grid.add(urlField, 1, 0);
         grid.add(new Label("Modelo"), 0, 1);
         grid.add(modelBox, 1, 1);
         grid.add(new Label("Motor TTS"), 0, 2);
         grid.add(ttsBox, 1, 2);
-        grid.add(speakResponsesBox, 0, 3);
-        grid.add(speakThinkingBox, 0, 4);
-        grid.add(webSearchBox, 0, 5);
+        grid.add(new Label("Idioma"), 0, 3);
+        grid.add(languageBox, 1, 3);
+        grid.add(speakResponsesBox, 0, 4);
+        grid.add(speakThinkingBox, 0, 5);
+        grid.add(webSearchBox, 0, 6);
 
         getDialogPane().setContent(grid);
         getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
@@ -77,6 +84,7 @@ public class SettingsDialog extends Dialog<AppConfig> {
                     modelBox.getValue(),
                     ttsBox.getValue(),
                     webSearchBox.isSelected(),
+                    languageBox.getValue(),
                     current.frontend()
                 );
                 return result;

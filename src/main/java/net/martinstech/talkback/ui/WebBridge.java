@@ -33,6 +33,7 @@ public class WebBridge {
     private final Supplier<SkillsService.SkillResult> onSkillsUpdate;
     private final Function<String, String> onSkillsDetails;
     private final Consumer<String> onSpeakText;
+    private final Supplier<String> onGetLanguage;
     private final Consumer<ImageMessage> onImageMessage;
     private Window ownerWindow;
 
@@ -49,6 +50,7 @@ public class WebBridge {
                      Function<String, net.martinstech.talkback.service.SkillsService.SkillResult> onSkillsRemove,
                      Supplier<net.martinstech.talkback.service.SkillsService.SkillResult> onSkillsUpdate,
                      Function<String, String> onSkillsDetails,
+                     Supplier<String> onGetLanguage,
                      Consumer<ImageMessage> onImageMessage) {
         this.onMessage = onMessage;
         this.onOpenFile = onOpenFile;
@@ -63,6 +65,7 @@ public class WebBridge {
         this.onSkillsUpdate = onSkillsUpdate;
         this.onSkillsDetails = onSkillsDetails;
         this.onSpeakText = onSpeakText;
+        this.onGetLanguage = onGetLanguage;
         this.onImageMessage = onImageMessage;
     }
 
@@ -121,6 +124,10 @@ public class WebBridge {
 
     public String skillsDetails(String skillPath) {
         return onSkillsDetails.apply(skillPath);
+    }
+
+    public String getLanguage() {
+        return onGetLanguage.get();
     }
 
     /**

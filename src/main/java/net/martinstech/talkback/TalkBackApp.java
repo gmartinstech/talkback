@@ -94,6 +94,7 @@ public class TalkBackApp extends Application {
             this::onSkillsRemove,
             this::onSkillsUpdate,
             this::onSkillsDetails,
+            () -> config.language(),
             this::onImageMessage
         );
         bridge.install(engine, chat.getStage());
