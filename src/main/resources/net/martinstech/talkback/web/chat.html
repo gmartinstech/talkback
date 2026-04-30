@@ -825,9 +825,7 @@
     if (skillsBtn) skillsBtn.title = t.skills;
     const closeBtn = document.getElementById('close-btn');
     if (closeBtn) closeBtn.title = t.close;
-    const attachBtn = document.getElementById('attach-btn');
     if (attachBtn) attachBtn.title = t.attach;
-    const micBtn = document.getElementById('mic-btn');
     if (micBtn) micBtn.title = t.dictate;
     const msgInput = document.getElementById('message-input');
     if (msgInput) msgInput.placeholder = t.placeholder;
@@ -843,12 +841,13 @@
       recognition.lang = currentLang === 'en-US' ? 'en-US' : 'pt-BR';
     }
 
-    // Override renderAttachment for localized document prefix
-    const origRenderAttachment = renderAttachment;
-    renderAttachment = function() {
-      if (!currentAttachment) { attachmentBar.style.display = 'none'; return; }
+    // Override renderAttachmentBar for localized document prefix
+    const origRenderAttachment = renderAttachmentBar;
+    renderAttachmentBar = function() {
+      if (!currentAttachment) { attachmentBar.style.display = 'none'; attachmentBar.innerHTML = ''; return; }
       attachmentBar.style.display = 'flex';
-      const icon = currentAttachment.type && currentAttachment.type.startsWith('image/') ? '🖼️' : '📄';
+      const isImage = currentAttachment.type && currentAttachment.type.startsWith('image/');
+      const icon = isImage ? '🖼️' : '📄';
       attachmentBar.innerHTML = `
         <div class="attachment-chip">
           <span>${icon}</span>
